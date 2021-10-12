@@ -1,22 +1,34 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(j2asn1 LANGUAGES CXX)
+project(tasn1 LANGUAGES C)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include_directories(AFTER SYSTEM "/usr/local/${CMAKE_BUILD_TYPE}/include")
 
 set(SOURCES
-  j2asn1.c
+  tasn1.c
 )
 
 set(HEADERS
-  j2asn1.h
+  tasn1.h
 )
 
-add_library(j2asn1 STATIC
+add_library(tasn1 STATIC
   ${SOURCES}
   ${HEADERS}
 )
 
-target_compile_definitions(j2asn1 PRIVATE J2ASN1_LIBRARY)
+set_target_properties(tasn1 PROPERTIES
+  PUBLIC_HEADER tasn1.h)
+
+target_compile_definitions(tasn1 PRIVATE TASN1_LIBRARY)
+
+install(TARGETS tasn1
+  LIBRARY DESTINATION       "${CMAKE_BUILD_TYPE}/lib"
+  ARCHIVE DESTINATION       "${CMAKE_BUILD_TYPE}/lib"
+  PUBLIC_HEADER DESTINATION "${CMAKE_BUILD_TYPE}/include")
+
+set(APP_EXE tasn1_test)
+add_executable(${APP_EXE} tasn1_test.c)
+target_link_libraries(${APP_EXE} tasn1)
+add_test(Test, ${APP_EXE})
