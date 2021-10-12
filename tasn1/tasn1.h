@@ -16,7 +16,7 @@ extern "C" {
  * @brief Internal node structure that holds a value.
  */
 struct tasn1_node;
-#define tasn1_node_t struct asn1_node
+#define tasn1_node_t struct tasn1_node
 
 /**
  * @brief Datatype of a asn1_node.

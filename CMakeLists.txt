@@ -1,16 +1,28 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(tasn1 LANGUAGES C)
+project(tasn1 LANGUAGES C CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(AFTER SYSTEM "/usr/local/${CMAKE_BUILD_TYPE}/include")
 
 set(SOURCES
   tasn1.c
+
+  array.cpp
+  node.cpp
+  map.cpp
+  number.cpp
+  octetsequence.cpp
 )
 
 set(HEADERS
-  tasn1.h
+  tasn1/tasn1.h
+
+  tasn1/array.hpp
+  tasn1/node.hpp
+  tasn1/map.hpp
+  tasn1/number.hpp
+  tasn1/octetsequence.hpp
 )
 
 add_library(tasn1 STATIC
@@ -18,17 +30,21 @@ add_library(tasn1 STATIC
   ${HEADERS}
 )
 
+target_compile_features(tasn1
+    PUBLIC cxx_std_17)
+
 set_target_properties(tasn1 PROPERTIES
-  PUBLIC_HEADER tasn1.h)
+  PUBLIC_HEADER "${HEADERS}"
+)
 
 target_compile_definitions(tasn1 PRIVATE TASN1_LIBRARY)
 
 install(TARGETS tasn1
   LIBRARY DESTINATION       "${CMAKE_BUILD_TYPE}/lib"
   ARCHIVE DESTINATION       "${CMAKE_BUILD_TYPE}/lib"
-  PUBLIC_HEADER DESTINATION "${CMAKE_BUILD_TYPE}/include")
+  PUBLIC_HEADER DESTINATION "${CMAKE_BUILD_TYPE}/include/tasn1")
 
 set(APP_EXE tasn1_test)
-add_executable(${APP_EXE} tasn1_test.c)
+add_executable(${APP_EXE} tasn1_test.cpp)
 target_link_libraries(${APP_EXE} tasn1)
 add_test(Test, ${APP_EXE})
