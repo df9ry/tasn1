@@ -33,6 +33,9 @@ add_library(tasn1 STATIC
 target_compile_features(tasn1
     PUBLIC cxx_std_17)
 
+target_include_directories(tasn1 PUBLIC
+    BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/include/")
+
 set_target_properties(tasn1 PROPERTIES
   PUBLIC_HEADER "${HEADERS}"
 )
@@ -46,5 +49,11 @@ install(TARGETS tasn1
 
 set(APP_EXE tasn1_test)
 add_executable(${APP_EXE} tasn1_test.cpp)
-target_link_libraries(${APP_EXE} tasn1)
+target_include_directories(${APP_EXE} PUBLIC
+    BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/include/")
+target_link_directories(${APP_EXE} PUBLIC
+    BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/lib/")
+target_link_libraries(${APP_EXE}
+    tasn1
+    JsonX)
 add_test(Test, ${APP_EXE})

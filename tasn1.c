@@ -86,18 +86,11 @@ static int serialize_octet_sequence(const octet_sequence_t *it, TASN1_OCTET *po,
     if (co < it->size)
         return -ENOMEM;
     const TASN1_OCTET *src = (it->is_copy ? it->data : it->p_data);
-    if (po) {
+    if (po)
         memcpy(po, src, it->size);
-        po += it->size;
-    }
     if (co < it->size)
         return -ENOMEM;
-    co -= it->size;
     return n + it->size;
-}
-
-static int octet_sequence_size(const octet_sequence_t *it) {
-    return serialize_octet_sequence(it, NULL, 65536);
 }
 
 struct map {
@@ -157,7 +150,7 @@ static int map_size_without_header(const map_t *it) {
     struct list_head *pos;
     item_t *current_item;
     int n = 0, m;
-    list_for_each(pos, &it->node_base.list) {
+    list_for_each(pos, &it->children) {
         current_item = list_entry(pos, item_t, list);
         m = serialize_item(current_item, NULL, 65536);
         if (m < 0)
@@ -185,7 +178,7 @@ static int serialize_map(const map_t *it, TASN1_OCTET *po, size_t co) {
     struct list_head *pos;
     item_t *current_item;
     int m;
-    list_for_each(pos, &it->node_base.list) {
+    list_for_each(pos, &it->children) {
         current_item = list_entry(pos, item_t, list);
         m = serialize_item(current_item, po, co);
         if (m < 0)
@@ -217,16 +210,12 @@ static void map_free(map_t *it) {
         struct list_head *n;
         item_t *current_item;
 
-        list_for_each_safe(pos, n, &it->node_base.list) {
+        list_for_each_safe(pos, n, &it->children) {
             current_item = list_entry(pos, item_t, list);
             item_free(current_item);
         }
         free(it);
     }
-}
-
-static int map_size(const map_t *it) {
-    return serialize_map(it, NULL, 65536);
 }
 
 int tasn1_add_map_item(tasn1_node_t *map,  tasn1_node_t *key, tasn1_node_t *val) {
@@ -236,7 +225,7 @@ int tasn1_add_map_item(tasn1_node_t *map,  tasn1_node_t *key, tasn1_node_t *val)
         return -ENOENT;
     if (map->type != TASN1_MAP_T)
         return -EINVAL;
-    list_add_tail(&new_item(key, val)->list, &map->list);
+    list_add_tail(&new_item(key, val)->list, &((map_t *)map)->children);
     return 0;
 }
 
@@ -262,7 +251,7 @@ static void array_free(array_t *it) {
         struct list_head *n;
         tasn1_node_t *current_node;
 
-        list_for_each_safe(pos, n, &it->node_base.list) {
+        list_for_each_safe(pos, n, &it->children) {
             current_node = list_entry(pos, tasn1_node_t, list);
             tasn1_free(current_node);
         }
@@ -278,7 +267,7 @@ static int array_size_without_header(const array_t *it) {
     tasn1_node_t *current_node;
 
     int n = 0, m;
-    list_for_each(pos, &it->node_base.list) {
+    list_for_each(pos, &it->children) {
         current_node = list_entry(pos, tasn1_node_t, list);
         m = tasn1_serialize(current_node, NULL, 65536);
         if (m < 0)
@@ -306,7 +295,7 @@ static int serialize_array(const array_t *it, TASN1_OCTET *po, size_t co) {
     struct list_head *pos;
     tasn1_node_t *current_node;
 
-    list_for_each(pos, &it->node_base.list) {
+    list_for_each(pos, &it->children) {
         current_node = list_entry(pos, tasn1_node_t, list);
         int m = tasn1_serialize(current_node, po, co);
         if (m < 0)
@@ -322,10 +311,6 @@ static int serialize_array(const array_t *it, TASN1_OCTET *po, size_t co) {
     return n;
 }
 
-static int array_size(const array_t *it) {
-    return serialize_array(it, NULL, 65536);
-}
-
 int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val) {
     if (!array)
         return -ENOMEM;
@@ -333,7 +318,7 @@ int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val) {
         return -ENOENT;
     if (array->type != TASN1_ARRAY_T)
         return -EINVAL;
-    list_add_tail(&val->list, &array->list);
+    list_add_tail(&val->list, &((array_t *)array)->children);
     return 0;
 }
 
@@ -383,10 +368,6 @@ static int serialize_number(const number_t *number, TASN1_OCTET *po, size_t co) 
         }
         return 3;
     }
-}
-
-static int number_size(const number_t *it) {
-    return serialize_number(it, NULL, 65536);
 }
 
 int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET *po, size_t co) {

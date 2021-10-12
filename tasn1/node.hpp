@@ -1,6 +1,8 @@
 #ifndef TASN1_NODE_HPP
 #define TASN1_NODE_HPP
 
+#include <jsonx.hpp>
+
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -15,12 +17,11 @@ typedef std::vector<unsigned char> vector_t;
 
 class Node {
 public:
+    static Node fromJson(const jsonx::json &j);
+
     Node() = delete;
     Node(const Node &other) = delete;
-    Node(Node &&other) {
-        std::swap(node,      other.node);
-        std::swap(contained, other.contained);
-    }
+    Node(Node &&other);
     ~Node();
 
     bool isContained() const { return contained; }

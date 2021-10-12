@@ -10,6 +10,10 @@
 #include <cstdio>
 #include <cctype>
 
+using namespace std;
+using namespace jsonx;
+using namespace tasn1;
+
 static void dump(TASN1_OCTET *pb, int cb) {
     printf("|");
     for (int i = 0; i < cb; ++i) {
@@ -75,6 +79,22 @@ static void cpp_tests() {
 
     tasn1::vector_t buffer;
     map1.serialize(buffer);
+
+    dump(buffer.data(), buffer.size());
+
+    json x9 = jarray({
+        false,
+        1,
+        jobject({
+            jitem("First",99),
+            jitem("Second","Blub"),
+            jitem("Third", true)
+        }),
+        "Bla"
+    });
+
+    Node n1 = Node::fromJson(x9);
+    n1.serialize(buffer);
 
     dump(buffer.data(), buffer.size());
 }
