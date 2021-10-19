@@ -14,6 +14,8 @@ public:
 
     void add(Node &key, Node &val);
     void add(const std::string &key, Node &val);
+    void add(const std::string &key, const std::string &val);
+    void add(const std::string &key, int16_t val);
 };
 
 } // end namespace tasn1 //

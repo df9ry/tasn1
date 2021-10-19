@@ -1,6 +1,7 @@
 #include "tasn1/map.hpp"
 #include "tasn1/octetsequence.hpp"
-#include "tasn1/tasn1.h"
+#include "tasn1/number.hpp"
+#include "tasn1.h"
 
 namespace tasn1 {
 
@@ -19,6 +20,18 @@ void Map::add(Node &key, Node &val) {
 void Map::add(const std::string &key, Node &val) {
     OctetSequence keySeq(key);
     add(keySeq, val);
+}
+
+void Map::add(const std::string &key, const std::string &val) {
+    OctetSequence keySeq(key);
+    OctetSequence valSeq(val);
+    add(keySeq, valSeq);
+}
+
+void Map::add(const std::string &key, int16_t val) {
+    OctetSequence keySeq(key);
+    Number num(val);
+    add(keySeq, num);
 }
 
 } // end namespace tasn1 //
