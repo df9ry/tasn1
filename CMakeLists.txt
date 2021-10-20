@@ -16,7 +16,7 @@ set(SOURCES
 )
 
 set(HEADERS
-  tasn1/tasn1.h
+  tasn1.h
 
   tasn1/array.hpp
   tasn1/node.hpp
