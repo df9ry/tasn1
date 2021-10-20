@@ -3,7 +3,7 @@
 #include "tasn1/array.hpp"
 #include "tasn1/number.hpp"
 #include "tasn1/octetsequence.hpp"
-#include "tasn1/tasn1.h"
+#include "tasn1.h"
 
 #include <functional>
 

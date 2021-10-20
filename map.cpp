@@ -1,6 +1,6 @@
 #include "tasn1/map.hpp"
 #include "tasn1/octetsequence.hpp"
-#include "tasn1/tasn1.h"
+#include "tasn1.h"
 
 namespace tasn1 {
 
