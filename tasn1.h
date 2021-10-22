@@ -141,6 +141,47 @@ int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
  */
 const char *tasn1_get_string(const TASN1_OCTET_T *po);
 
+/**
+ * @brief tasn1_iterator_set Initialize an existing iterator with a
+ *        container.
+ * @param iter Pointer to existing iterator.
+ * @param po Pointer into a serialized stream.
+ * @return 0, if OK, ENOMEN if iter is NULL, EINVAL if neither ARRAY
+ *         nor MAP.
+ */
+int tasn1_iterator_set(tasn1_iterator_t *iter, const TASN1_OCTET_T *po);
+
+/**
+ * @brief tasn1_new_iterator Create and initialize a new iterator.
+ *        Note: This iterator must be freed with tasn1_iterator_free!
+ * @return New iterator or NULL, if no memeory is available.
+ */
+tasn1_iterator_t *tasn1_new_iterator();
+
+/**
+ * @brief tasn1_new_iterator_set Create a new iterator and set it
+ *        to a seriaized container.
+ *        Note: This iterator must be freed with tasn1_iterator_free!
+ * @param po Pointer into a serialized stream.
+ * @return New ready to use iterator or NULL, if either no memory is
+ *        available or po doesn't point to a valid container object.
+ */
+tasn1_iterator_t *tasn1_new_iterator_set(const TASN1_OCTET_T *po);
+
+/**
+ * @brief tasn1_iterator_free Free an dynamically allocated iterator.
+ */
+#define tasn1_iterator_free(iter) free(iter)
+
+/**
+ * @brief tasn1_iterator_get Get position to the current item in the
+ *        stream and advance iterator.
+ * @param iter Pointer to iterator.
+ * @return Pointer to current node in stream or NULL if no item
+ *         available (Not a container or end of list).
+ */
+const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter);
+
 #ifdef __cplusplus
 }
 #endif

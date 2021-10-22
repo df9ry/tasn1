@@ -317,7 +317,7 @@ static void c_tests() {
     assert(astring);
     assert(strcmp(astring, "") == 0);
 
-    const char *test_string = "A quick brown fox jumps over the lazy dog, 1234567890";
+    const char *test_string = "The quick brown fox jumps over the lazy dog, 1234567890";
 
     node = tasn1_new_string(test_string, true);
     assert(node);
@@ -328,6 +328,72 @@ static void c_tests() {
     astring = tasn1_get_string(buf);
     assert(astring);
     assert(strcmp(astring, test_string) == 0);
+
+    //// Test arrays ////
+
+    node = tasn1_new_array();
+    assert(node);
+    n = tasn1_serialize(node, buf, BUF_S);
+    assert(n == 1);
+    assert(tasn1_size(node) == 1);
+    tasn1_free(node);
+    assert(tasn1_get_type(buf) == TASN1_ARRAY);
+
+    TASN1_ITERATOR(iter);
+
+    assert(tasn1_iterator_set(&iter, buf) == 0);
+    assert(tasn1_iterator_get(&iter) == NULL);
+
+    const TASN1_OCTET_T *pb;
+    tasn1_node_t *container;
+
+    // Try it with one entry:
+    container = tasn1_new_array();
+    assert(container);
+    node = tasn1_new_string(test_string, true);
+    assert(node);
+    assert(tasn1_add_array_value(container, node) == 0);
+    n = tasn1_serialize(container, buf, BUF_S);
+    assert(n > 0);
+    tasn1_free(container);
+    assert(tasn1_iterator_set(&iter, buf) == 0);
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    astring = tasn1_get_string(pb);
+    assert(astring);
+    assert(strcmp(astring, test_string) == 0);
+    pb = tasn1_iterator_get(&iter);
+    assert(!pb);
+
+    // Try it with three entries:
+    container = tasn1_new_array();
+    assert(container);
+    node = tasn1_new_string(test_string, false);
+    assert(node);
+    assert(tasn1_add_array_value(container, node) == 0);
+    node = tasn1_new_array();
+    assert(node);
+    assert(tasn1_add_array_value(container, node) == 0);
+    node = tasn1_new_map();
+    assert(node);
+    assert(tasn1_add_array_value(container, node) == 0);
+    n = tasn1_serialize(container, buf, BUF_S);
+    assert(n > 0);
+    tasn1_free(container);
+    assert(tasn1_iterator_set(&iter, buf) == 0);
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    astring = tasn1_get_string(pb);
+    assert(astring);
+    assert(strcmp(astring, test_string) == 0);
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_ARRAY);
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_MAP);
+    pb = tasn1_iterator_get(&iter);
+    assert(!pb);
 
     //// Test maps ////
 
@@ -362,6 +428,41 @@ static void c_tests() {
     assert(size2 == size1);
 
     tasn1_free(map1);
+
+    assert(tasn1_get_type(buf2) == TASN1_MAP);
+    assert(tasn1_iterator_set(&iter, buf2) == 0);
+    // Key 1:
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
+    astring = tasn1_get_string(pb);
+    assert(astring);
+    assert(strcmp(astring, "KEY1") == 0);
+    // Value 1:
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
+    astring = tasn1_get_string(pb);
+    assert(astring);
+    assert(strcmp(astring, "VAL1") == 0);
+    // Key 2:
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
+    astring = tasn1_get_string(pb);
+    assert(astring);
+    assert(strcmp(astring, "KEY2") == 0);
+    // Value 2:
+    pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_NUMBER);
+    number = 7;
+    assert(tasn1_get_number(pb, &number) == 0);
+    assert(number == 1);
+
+
+
+
 }
 
 static void cpp_tests() {

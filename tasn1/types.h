@@ -35,10 +35,14 @@ enum tasn1_type {
  * @brief State for TASN1 scanner.
  */
 struct tasn1_iterator {
-    tasn1_type_t container_type;
-    TASN1_OCTET_T *p;
+    tasn1_type_t         ct;
+    const TASN1_OCTET_T *p;
+    TASN1_SIZE_T         c;
 };
-#define tasn1_iterator_t struct tasn1_iterator;
+#define tasn1_iterator_t struct tasn1_iterator
+
+#define TASN1_ITERATOR_INIT(name) { .ct = TASN1_INVALID, .p = NULL, .c = 0 }
+#define TASN1_ITERATOR(name) tasn1_iterator name = TASN1_ITERATOR_INIT(name)
 
 #ifdef __cplusplus
 }

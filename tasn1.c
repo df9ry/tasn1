@@ -3,39 +3,54 @@
 #include <errno.h>
 #include <clist.h>
 #include <limits.h>
+#include <assert.h>
 
 tasn1_node_t {
     tasn1_type_t type;
     struct list_head list;
 };
 
-static int _get_size_size(const TASN1_OCTET_T *po)
+static TASN1_SIZE_T _get_header_size(const TASN1_OCTET_T *po)
 {
     if (!po)
-        return -1;
-    if ((*po) & 0x80)
-        return ((*po) & 0x1f) + 1;
-    return 1;
+        return 0;
+    if (!((*po) & 0x80)) // Short form
+        return 1;
+    return 1 + ((*po) & 0x1f); // 1 + number of length bytes.
 }
 
-static int _get_size(const TASN1_OCTET_T *po)
+static int _get_content_size(const TASN1_OCTET_T *po)
 {
-    switch (_get_size_size(po)) {
-    case 1: return (*po) & 0x1f;
-    case 2: return (*(po + 1));
-    case 3: return (*(po + 1)) * 256 + (*(po + 2));
-    default: return -1;
+    if (!((*po) & 0x80)) // Short form
+        return (*po) & 0x1f;
+    int length_bytes = (*po) & 0x1f;
+    switch (length_bytes) {
+    case 0: return 0;
+    case 1: return (*(po + 1));
+    case 2: return (*(po + 1)) * 256 + (*(po + 2));
+    default: return -EINVAL; // We don't support more than two length bytes.
     } // end switch //
 }
 
+static int _get_total_size(const TASN1_OCTET_T *po)
+{
+    int content_size = _get_content_size(po);
+    if (content_size < 0)
+        return content_size;
+    TASN1_SIZE_T header_size = _get_header_size(po);
+    if (content_size > (USHRT_MAX - header_size))
+        return -ENOMEM;
+    return header_size + content_size;
+}
+
 static int serialize_header(tasn1_type_t type, size_t size, TASN1_OCTET_T *po, size_t co) {
-    if (size < 32) {
+    if (size < 32) { // Use short form:
         if (co < 1)
             return -ENOMEM;
         if (po)
             *po = (type << 5) | size;
         return 1;
-    } else if (size <= UCHAR_MAX) {
+    } else if (size <= UCHAR_MAX) { // Use one length byte:
         if (co < 2)
             return -ENOMEM;
         if (po) {
@@ -43,7 +58,7 @@ static int serialize_header(tasn1_type_t type, size_t size, TASN1_OCTET_T *po, s
             *po = size;
         }
         return 2;
-    } else if (size <= USHRT_MAX) {
+    } else if (size <= USHRT_MAX) { // Use two length bytes:
         if (co < 3)
             return -ENOMEM;
         if (po) {
@@ -182,10 +197,10 @@ static int map_size_without_header(const map_t *it) {
 static int serialize_map(const map_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
-    int size = map_size_without_header(it);
-    if (size < 0)
-        return size;
-    int n = serialize_header(TASN1_MAP, size, po, co);
+    int size_without_header = map_size_without_header(it);
+    if (size_without_header < 0)
+        return size_without_header;
+    int n = serialize_header(TASN1_MAP, size_without_header, po, co);
     if (n < 0)
         return n;
     if (po)
@@ -300,10 +315,10 @@ static int array_size_without_header(const array_t *it) {
 static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
-    int size = array_size_without_header(it);
-    if (size < 0)
-        return size;
-    int n = serialize_header(TASN1_MAP, size, po, co);
+    int size_without_header = array_size_without_header(it);
+    if (size_without_header < 0)
+        return size_without_header;
+    int n = serialize_header(TASN1_ARRAY, size_without_header, po, co);
     if (n < 0)
         return n;
     if (po)
@@ -479,10 +494,10 @@ int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
     if (tasn1_get_type(po) != TASN1_OCTET_SEQUENCE)
         return EINVAL;
 
-    int size = _get_size(po);
+    int size = _get_content_size(po);
     if ((size < 0) || (size > USHRT_MAX))
         return EINVAL;
-    int size_size = _get_size_size(po);
+    int size_size = _get_header_size(po);
     if ((size_size < 1) || (size_size > 3))
         return EINVAL;
     if (ppo)
@@ -504,4 +519,74 @@ const char *tasn1_get_string(const TASN1_OCTET_T *po)
     if (pc[sc - 1] != '\0')
         return NULL;
     return (const char *)pc;
+}
+
+static void iterator_init(tasn1_iterator_t *iter)
+{
+    assert(iter);
+    iter->ct = TASN1_INVALID;
+    iter->p = NULL;
+    iter->c = 0;
+}
+
+int tasn1_iterator_set(tasn1_iterator_t *iter, const TASN1_OCTET_T *po)
+{
+    if (!iter)
+        return ENOMEM;
+    iter->ct = tasn1_get_type(po);
+    if ((iter->ct != TASN1_ARRAY) && (iter->ct != TASN1_MAP))
+        return EINVAL;
+    int header_size = _get_header_size(po);
+    if (header_size < 0)
+        return EINVAL;
+    int content_size = _get_content_size(po);
+    if (content_size < 0)
+        return EINVAL;
+    iter->p = po + header_size; // Start at content
+    iter->c = content_size; // Left content_size octets
+    return 0;
+}
+
+tasn1_iterator_t *tasn1_new_iterator()
+{
+    tasn1_iterator_t *iter = (tasn1_iterator_t *)malloc(sizeof(tasn1_iterator_t));
+    if (!iter)
+        return NULL;
+    iterator_init(iter);
+    return iter;
+}
+
+tasn1_iterator_t *tasn1_new_iterator_set(const TASN1_OCTET_T *po)
+{
+    tasn1_type_t type = tasn1_get_type(po);
+    if ((type != TASN1_ARRAY) && (type != TASN1_MAP))
+        return NULL;
+    tasn1_iterator_t *iter = (tasn1_iterator_t *)malloc(sizeof(tasn1_iterator_t));
+    if (!iter)
+        return NULL;
+    if (tasn1_iterator_set(iter, po) != 0) {
+        tasn1_iterator_free(iter);
+        return NULL;
+    }
+    return iter;
+}
+
+const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter)
+{
+    if ((!iter) || (iter->ct == TASN1_INVALID) || (iter->p == NULL) || (iter->c == 0))
+        return NULL;
+    const TASN1_OCTET_T *result = iter->p;
+    int content_size = _get_content_size(iter->p);
+    if ((content_size < 0) || (content_size > iter->c)) {
+        iterator_init(iter);
+        return result;
+    }
+    int total_size = _get_total_size(iter->p);
+    if ((total_size < 0) || (total_size >= iter->c)) {
+        iterator_init(iter);
+        return result;
+    }
+    iter->p += total_size;
+    iter->c -= total_size;
+    return result;
 }
