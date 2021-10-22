@@ -9,6 +9,25 @@ tasn1_node_t {
     struct list_head list;
 };
 
+static int _get_size_size(const TASN1_OCTET_T *po)
+{
+    if (!po)
+        return -1;
+    if ((*po) & 0x80)
+        return ((*po) & 0x1f) + 1;
+    return 1;
+}
+
+static int _get_size(const TASN1_OCTET_T *po)
+{
+    switch (_get_size_size(po)) {
+    case 1: return (*po) & 0x1f;
+    case 2: return (*(po + 1));
+    case 3: return (*(po + 1)) * 256 + (*(po + 2));
+    default: return -1;
+    } // end switch //
+}
+
 static int serialize_header(tasn1_type_t type, size_t size, TASN1_OCTET_T *po, size_t co) {
     if (size < 32) {
         if (co < 1)
@@ -50,6 +69,8 @@ struct octet_sequence {
 #define octet_sequence_t struct octet_sequence
 
 tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co, bool copy) {
+    if (!po)
+        return NULL;
     size_t sz = sizeof(octet_sequence_t) + (copy ? co : 0);
     octet_sequence_t *res = malloc(sz);
     if (!res)
@@ -88,8 +109,6 @@ static int serialize_octet_sequence(const octet_sequence_t *it, TASN1_OCTET_T *p
     const TASN1_OCTET_T *src = (it->is_copy ? it->data : it->p_data);
     if (po)
         memcpy(po, src, it->size);
-    if (co < it->size)
-        return -ENOMEM;
     return n + it->size;
 }
 
@@ -410,4 +429,79 @@ void tasn1_free(tasn1_node_t *node) {
                 return;
         } // end switch //
     }
+}
+
+tasn1_type_t tasn1_get_type(const TASN1_OCTET_T *po)
+{
+    if (!po)
+        return TASN1_INVALID;
+    return (*po & 0x60) >> 5;
+}
+
+int tasn1_get_number(const TASN1_OCTET_T *po, TASN1_NUMBER_T *pn)
+{
+    if (!pn)
+        return ENOMEM;
+    if (!po)
+        return EINVAL;
+    if (tasn1_get_type(po) != TASN1_NUMBER)
+        return EINVAL;
+    uint16_t msb, lsb;
+    if (*po & 0x80) {
+        int size = *po & 0x1f;
+        switch (size) {
+        case 1:
+            lsb = *(po + 1);
+            msb = (lsb & 0x80) ? 0xff : 0x00;
+            *pn = (msb << 8) | lsb;
+            return 0;
+        case 2:
+            lsb = *(po + 2);
+            msb = *(po + 1);
+            *pn = (msb << 8) | lsb;
+            return 0;
+        default:
+            *pn = -1;
+            return EINVAL;
+        } // end switch //
+    }
+    lsb = (*po) & 0x001f;
+    msb = (lsb & 0x0010) ? 0xffe0 : 0x0000;
+    (*pn) = msb | lsb;
+    return 0;
+}
+
+int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
+                            const TASN1_OCTET_T **ppo, TASN1_SIZE_T *pso)
+{
+    if (!po)
+        return EINVAL;
+    if (tasn1_get_type(po) != TASN1_OCTET_SEQUENCE)
+        return EINVAL;
+
+    int size = _get_size(po);
+    if ((size < 0) || (size > USHRT_MAX))
+        return EINVAL;
+    int size_size = _get_size_size(po);
+    if ((size_size < 1) || (size_size > 3))
+        return EINVAL;
+    if (ppo)
+        *ppo = po + size_size;
+    if (pso)
+        *pso = (TASN1_SIZE_T)size;
+    return 0;
+}
+
+const char *tasn1_get_string(const TASN1_OCTET_T *po)
+{
+    const TASN1_OCTET_T *pc;
+    TASN1_SIZE_T         sc;
+    if (tasn1_get_octetsequence(po, &pc, &sc) != 0)
+        return NULL;
+    if (sc == 0)
+        return NULL;
+    // Check for terminating '\0'
+    if (pc[sc - 1] != '\0')
+        return NULL;
+    return (const char *)pc;
 }

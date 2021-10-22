@@ -22,8 +22,23 @@ struct tasn1_node;
 /**
  * @brief Datatype of a asn1_node.
  */
-enum tasn1_type { TASN1_MAP = 0, TASN1_ARRAY = 1, TASN1_OCTET_SEQUENCE = 2, TASN1_NUMBER = 3 };
+enum tasn1_type {
+    TASN1_INVALID        = -1,
+    TASN1_MAP            =  0,
+    TASN1_ARRAY          =  1,
+    TASN1_OCTET_SEQUENCE =  2,
+    TASN1_NUMBER         =  3
+};
 #define tasn1_type_t enum tasn1_type
+
+/**
+ * @brief State for TASN1 scanner.
+ */
+struct tasn1_iterator {
+    tasn1_type_t container_type;
+    TASN1_OCTET_T *p;
+};
+#define tasn1_iterator_t struct tasn1_iterator;
 
 #ifdef __cplusplus
 }

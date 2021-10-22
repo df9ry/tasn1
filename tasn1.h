@@ -105,6 +105,42 @@ int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET_T *po, TASN1_SIZE_T co
  */
 void tasn1_free(tasn1_node_t *node);
 
+/**
+ * @brief tasn1_get_type Get type of serialized node.
+ * @param po Pointer into serialized stream.
+ * @return Type of node.
+ */
+tasn1_type_t tasn1_get_type(const TASN1_OCTET_T *po);
+
+/**
+ * @brief tasn1_get_number Read number out of a serialized
+ *        stream.
+ * @param po Pointer into a serialized stream.
+ * @param pn Pointer to a number vaialble to fill.
+ * @return Error code - 0 is OK, ENOMEM when pn is NULL, EINVAL when
+ *         po is not pointing to a number.
+ */
+int tasn1_get_number(const TASN1_OCTET_T *po, TASN1_NUMBER_T *pn);
+
+/**
+ * @brief tasn1_get_octetsequence Read octetsequence out of a serialized
+ *        stream.
+ * @param po Pointer into a serialized stream.
+ * @param ppo Pointer to a buffer with the octets.
+ * @param pso Pointer to size object where to store the length.
+ * @return Error code - 0 is OK, ENOMEM when ppo or pso is NULL, EINVAL when
+ *         po is not pointing to a octetsequence.
+ */
+int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
+                            const TASN1_OCTET_T **ppo, TASN1_SIZE_T *pso);
+
+/**
+ * @brief tasn1_get_string Read string out of a serialized stream.
+ * @param po Pointer into a serialized stream.
+ * @return Pointer to C-string or NULL, if no C-string there.
+ */
+const char *tasn1_get_string(const TASN1_OCTET_T *po);
+
 #ifdef __cplusplus
 }
 #endif
