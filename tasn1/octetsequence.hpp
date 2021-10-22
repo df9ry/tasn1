@@ -2,6 +2,7 @@
 #define TASN1_OCTETSEQUENCE_HPP
 
 #include "node.hpp"
+#include "tasn1/types.h"
 
 #include <string>
 
@@ -10,7 +11,7 @@ namespace tasn1 {
 class OctetSequence: public Node
 {
 public:
-    OctetSequence(const uint8_t *po, uint16_t co);
+    OctetSequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co);
     OctetSequence(const std::string &s);
 };
 

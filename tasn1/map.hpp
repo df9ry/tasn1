@@ -2,6 +2,7 @@
 #define TASN1_MAP_HPP
 
 #include "node.hpp"
+#include "tasn1/types.h"
 
 #include <string>
 
@@ -15,7 +16,7 @@ public:
     void add(Node &key, Node &val);
     void add(const std::string &key, Node &val);
     void add(const std::string &key, const std::string &val);
-    void add(const std::string &key, int16_t val);
+    void add(const std::string &key, TASN1_NUMBER_T val);
 };
 
 } // end namespace tasn1 //

@@ -2,13 +2,14 @@
 #define TASN1_NUMBER_HPP
 
 #include "node.hpp"
+#include "tasn1/types.h"
 
 namespace tasn1 {
 
 class Number: public Node
 {
 public:
-    Number(int16_t n);
+    Number(TASN1_NUMBER_T n);
     Number(bool b);
 };
 

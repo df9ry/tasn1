@@ -5,19 +5,23 @@
 #include "tasn1/octetsequence.hpp"
 #include "tasn1/number.hpp"
 
+#undef DUMP
+
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cctype>
+#include <climits>
 
 using namespace std;
 using namespace jsonx;
 using namespace tasn1;
 
-static void dump(TASN1_OCTET *pb, int cb) {
+#ifdef DUMP
+static void dump(TASN1_OCTET_T *pb, int cb) {
     printf("|");
     for (int i = 0; i < cb; ++i) {
-        TASN1_OCTET o = pb[i];
+        TASN1_OCTET_T o = pb[i];
         printf("%02x|", o);
     } // end for //
     printf("\n");
@@ -31,9 +35,49 @@ static void dump(TASN1_OCTET *pb, int cb) {
     } // end for //
     printf("\n");
 }
+#endif
 
 static void c_tests() {
     int erc;
+    tasn1_node_t *n = NULL;
+
+    n = tasn1_new_number(SHRT_MIN);
+    assert(n);
+    assert(tasn1_size(n) == 3);
+    tasn1_free(n);
+
+    n = tasn1_new_number(SCHAR_MIN);
+    assert(n);
+    assert(tasn1_size(n) == 2);
+    tasn1_free(n);
+
+    n = tasn1_new_number(-16);
+    assert(n);
+    assert(tasn1_size(n) == 1);
+    tasn1_free(n);
+
+    n = tasn1_new_number(0);
+    assert(n);
+    assert(tasn1_size(n) == 1);
+    tasn1_free(n);
+
+    n = tasn1_new_number(15);
+    assert(n);
+    assert(tasn1_size(n) == 1);
+    tasn1_free(n);
+
+    n = tasn1_new_number(SCHAR_MAX);
+    assert(n);
+    assert(tasn1_size(n) == 2);
+    tasn1_free(n);
+
+    n = tasn1_new_number(SHRT_MAX);
+    assert(n);
+    assert(tasn1_size(n) == 3);
+    tasn1_free(n);
+
+
+
 
     tasn1_node_t *map1 = tasn1_new_map();
     assert(map1);
@@ -48,15 +92,17 @@ static void c_tests() {
     assert(size1 > 0);
     //printf("Size = %i\n", size1);
 
-    TASN1_OCTET buf1[10];
+    TASN1_OCTET_T buf1[10];
     erc = tasn1_serialize(map1, buf1, sizeof(buf1));
     //printf("erc = %i: %s\n", erc, strerror(-erc));
     assert(erc < 0);
 
-    TASN1_OCTET buf2[40];
+    TASN1_OCTET_T buf2[40];
     int size2 = tasn1_serialize(map1, buf2, sizeof(buf2));
     assert(size2 > 0);
+#ifdef DUMP
     dump(buf2, size2);
+#endif
     assert(size2 == size1);
 
     tasn1_free(map1);
@@ -80,7 +126,9 @@ static void cpp_tests() {
     tasn1::vector_t buffer;
     map1.serialize(buffer);
 
+#ifdef DUMP
     dump(buffer.data(), buffer.size());
+#endif
 
     json x9 = jarray({
         false,
@@ -96,7 +144,9 @@ static void cpp_tests() {
     Node n1 = Node::fromJson(x9);
     n1.serialize(buffer);
 
+#ifdef DUMP
     dump(buffer.data(), buffer.size());
+#endif
 }
 
 int main() {

@@ -1,28 +1,11 @@
 #ifndef TASN1_H
 #define TASN1_H
 
+#include "tasn1/types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <string.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-#define TASN1_OCTET  uint8_t
-#define TASN1_NUMBER int16_t
-
-/**
- * @brief Internal node structure that holds a value.
- */
-struct tasn1_node;
-#define tasn1_node_t struct tasn1_node
-
-/**
- * @brief Datatype of a asn1_node.
- */
-enum tasn1_type { TASN1_MAP_T = 0, TASN1_ARRAY_T = 1, TASN1_OCTET_SEQUENCE_T = 2, TASN1_NUMBER_T = 3 };
-#define tasn1_type_t enum tasn1_type
 
 /**
  * @brief Create new asn1_node for octet sequence.
@@ -32,7 +15,7 @@ enum tasn1_type { TASN1_MAP_T = 0, TASN1_ARRAY_T = 1, TASN1_OCTET_SEQUENCE_T = 2
  * @param copy When true, the value is copied, otherwise only reference
  * @return tasn1_node_t* New asn1_node
  */
-tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET *po, size_t co, bool copy);
+tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co, bool copy);
 
 /**
  * @brief Create new asn1_node for string.
@@ -42,7 +25,7 @@ tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET *po, size_t co, bool co
  * @return tasn1_node_t* New asn1_node
  */
 #define tasn1_new_string(S, COPY) \
-    tasn1_new_octet_sequence((TASN1_OCTET *)S, strlen(S) + 1, COPY)
+    tasn1_new_octet_sequence((TASN1_OCTET_T *)S, strlen(S) + 1, COPY)
 
 /**
  * @brief Create new asn1_node for storing of array values
@@ -78,7 +61,7 @@ tasn1_node_t *tasn1_new_map();
 int tasn1_add_map_item(tasn1_node_t *map, tasn1_node_t *key, tasn1_node_t *val);
 
 #define tasn1_add_map_string(MAP, KEY, COPY, VAL) \
-    tasn1_add_map_item(MAP, tasn1_new_octet_sequence((const TASN1_OCTET *)KEY, strlen(KEY) + 1 , COPY), VAL)
+    tasn1_add_map_item(MAP, tasn1_new_octet_sequence((const TASN1_OCTET_T *)KEY, strlen(KEY) + 1 , COPY), VAL)
 
 /**
  * @brief Create new asn1_node for number.
@@ -86,7 +69,7 @@ int tasn1_add_map_item(tasn1_node_t *map, tasn1_node_t *key, tasn1_node_t *val);
  * @param n Number to store.
  * @return tasn1_node_t* New asn1_node
  */
-tasn1_node_t *tasn1_new_number(TASN1_NUMBER n);
+tasn1_node_t *tasn1_new_number(TASN1_NUMBER_T n);
 
 /**
  * @brief Create new asn1_node for boolean.
@@ -113,7 +96,7 @@ int tasn1_size(const tasn1_node_t *node);
  * @param co Size of buffer for serialization.
  * @return Number of octets written or negative error number.
  */
-int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET *po, size_t co);
+int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET_T *po, TASN1_SIZE_T co);
 
 /**
  * @brief Release all ressources allocated by a node, incl. all related nodes.

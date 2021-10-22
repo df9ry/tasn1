@@ -17,20 +17,20 @@ Node Node::fromJson(const jsonx::json &j) {
     case json::UNDEFINED_T :
         return OctetSequence(NULL, 0);
     case json::NULL_T :
-        return Number(static_cast<TASN1_NUMBER>(0));
+        return Number(static_cast<TASN1_NUMBER_T>(0));
     case json::BOOL_T :
         return Number(j.toBool());
     case json::SIGNED_T :
-        return Number(static_cast<TASN1_NUMBER>(j.toSigned()));
+        return Number(static_cast<TASN1_NUMBER_T>(j.toSigned()));
     case json::UNSIGNED_T :
-        return Number(static_cast<TASN1_NUMBER>(j.toSigned()));
+        return Number(static_cast<TASN1_NUMBER_T>(j.toSigned()));
     case json::REAL_T : {
         union {
             json_real_t r;
-            TASN1_OCTET o[sizeof(json_real_t)];
+            TASN1_OCTET_T o[sizeof(json_real_t)];
         } u;
         u.r = j.toReal();
-        return OctetSequence(u.o, static_cast<TASN1_NUMBER>(sizeof(json_real_t)));
+        return OctetSequence(u.o, static_cast<TASN1_NUMBER_T>(sizeof(json_real_t)));
     }
     case json::STRING_T :
         return OctetSequence(j.toString());
