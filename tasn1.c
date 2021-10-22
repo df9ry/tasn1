@@ -163,18 +163,24 @@ static item_t *new_item(tasn1_node_t *key, tasn1_node_t *val) {
 static int serialize_item(const item_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
-    int n = tasn1_serialize(it->p_key, po, co);
-    if (n < 0)
-        return n;
-    if (po)
-        po += n;
-    if ((int)co < n)
+    tasn1_node_t *item = tasn1_new_array();
+    if (!item)
         return -ENOMEM;
-    co -= n;
-    int m = tasn1_serialize(it->p_val, po, co);
-    if (m < 0)
-        return m;
-    return n + m;
+    int erc;
+    erc = tasn1_add_array_value(item, it->p_key);
+    if (erc != 0) {
+        tasn1_free(item);
+        return -erc;
+    }
+    erc = tasn1_add_array_value(item, it->p_val);
+    if (erc != 0) {
+        tasn1_free(item);
+        return -erc;
+    }
+    int n = tasn1_serialize(item, po, co);
+    // Warning: Using tasn1_free here would corrupt p_key and p_val!
+    free(item);
+    return n;
 }
 
 static int map_size_without_header(const map_t *it) {

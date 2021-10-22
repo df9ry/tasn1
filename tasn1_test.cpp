@@ -429,40 +429,54 @@ static void c_tests() {
 
     tasn1_free(map1);
 
+    TASN1_ITERATOR(child_iter);
+
     assert(tasn1_get_type(buf2) == TASN1_MAP);
     assert(tasn1_iterator_set(&iter, buf2) == 0);
     // Key 1:
     pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_ARRAY);
+    assert(tasn1_iterator_set(&child_iter, pb) == 0);
+    pb = tasn1_iterator_get(&child_iter);
     assert(pb);
     assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
     astring = tasn1_get_string(pb);
     assert(astring);
     assert(strcmp(astring, "KEY1") == 0);
     // Value 1:
-    pb = tasn1_iterator_get(&iter);
+    pb = tasn1_iterator_get(&child_iter);
     assert(pb);
     assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
     astring = tasn1_get_string(pb);
     assert(astring);
     assert(strcmp(astring, "VAL1") == 0);
+    // EOF:
+    assert(!tasn1_iterator_get(&child_iter));
+
     // Key 2:
     pb = tasn1_iterator_get(&iter);
+    assert(pb);
+    assert(tasn1_get_type(pb) == TASN1_ARRAY);
+    assert(tasn1_iterator_set(&child_iter, pb) == 0);
+    pb = tasn1_iterator_get(&child_iter);
     assert(pb);
     assert(tasn1_get_type(pb) == TASN1_OCTET_SEQUENCE);
     astring = tasn1_get_string(pb);
     assert(astring);
     assert(strcmp(astring, "KEY2") == 0);
     // Value 2:
-    pb = tasn1_iterator_get(&iter);
+    pb = tasn1_iterator_get(&child_iter);
     assert(pb);
     assert(tasn1_get_type(pb) == TASN1_NUMBER);
     number = 7;
     assert(tasn1_get_number(pb, &number) == 0);
     assert(number == 1);
+    // EOF:
+    assert(!tasn1_iterator_get(&child_iter));
 
-
-
-
+    // EOF:
+    assert(!tasn1_iterator_get(&iter));
 }
 
 static void cpp_tests() {
