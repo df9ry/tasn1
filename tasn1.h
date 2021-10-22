@@ -141,6 +141,9 @@ int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
  */
 const char *tasn1_get_string(const TASN1_OCTET_T *po);
 
+#define TASN1_ITERATOR_INIT(name) { .ct = TASN1_INVALID, .p = NULL, .c = 0 }
+#define TASN1_ITERATOR(name) tasn1_iterator name = TASN1_ITERATOR_INIT(name)
+
 /**
  * @brief tasn1_iterator_set Initialize an existing iterator with a
  *        container.

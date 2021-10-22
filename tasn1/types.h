@@ -41,9 +41,6 @@ struct tasn1_iterator {
 };
 #define tasn1_iterator_t struct tasn1_iterator
 
-#define TASN1_ITERATOR_INIT(name) { .ct = TASN1_INVALID, .p = NULL, .c = 0 }
-#define TASN1_ITERATOR(name) tasn1_iterator name = TASN1_ITERATOR_INIT(name)
-
 #ifdef __cplusplus
 }
 #endif
