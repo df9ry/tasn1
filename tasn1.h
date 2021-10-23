@@ -8,6 +8,27 @@ extern "C" {
 #endif
 
 /**
+ * @brief Initialize octet sequence.
+ *
+ * @param it Pointer to an octet sequence struct.
+ * @param po Pointer to the octet sequence.
+ * @param co Size of the octet sequence.
+ */
+void tasn1_init_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, TASN1_SIZE_T co);
+
+/**
+ * @brief Reset already initialized octet sequence with a new value.
+ *
+ * @param it Pointer to an octet sequence struct.
+ * @param po Pointer to the octet sequence.
+ * @param co Size of the octet sequence.
+ */
+void tasn1_reset_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, TASN1_SIZE_T co);
+
+#define tasn1_reset_string(O,S) \
+    tasn1_reset_octet_sequence(O, (const TASN1_OCTET_T *)S, strlen(S) + 1)
+
+/**
  * @brief Create new asn1_node for octet sequence.
  * 
  * @param po Pointer to the octet sequence.
@@ -17,6 +38,9 @@ extern "C" {
  */
 tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co, bool copy);
 
+#define tasn1_init_string(N,S) \
+    tasn1_init_octet_sequence(N, (const TASN1_OCTET_T *)S, strlen(S) + 1);
+
 /**
  * @brief Create new asn1_node for string.
  * 
@@ -25,7 +49,14 @@ tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co,
  * @return tasn1_node_t* New asn1_node
  */
 #define tasn1_new_string(S, COPY) \
-    tasn1_new_octet_sequence((TASN1_OCTET_T *)S, strlen(S) + 1, COPY)
+    tasn1_new_octet_sequence((const TASN1_OCTET_T *)S, strlen(S) + 1, COPY)
+
+/**
+ * @brief tasn1_init_array Initialize an array.
+ *
+ * @param it The array structure to initialize.
+ */
+void tasn1_init_array(array_t *it);
 
 /**
  * @brief Create new asn1_node for storing of array values
@@ -44,6 +75,18 @@ tasn1_node_t *tasn1_new_array();
 int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val);
 
 /**
+ * @brief tasn1_array_reset Release all child elements.
+ * @param it The array to reset.
+ */
+void tasn1_array_reset(array_t *it);
+
+/**
+ * @brief tasn1_init_map Initialize a map.
+ * @param it
+ */
+void tasn1_init_map(map_t *it);
+
+/**
  * @brief Create new asn1_node for storing of map items
  * 
  * @return tasn1_node_t* New asn1_node
@@ -51,17 +94,57 @@ int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val);
 tasn1_node_t *tasn1_new_map();
 
 /**
+ * @brief tasn1_map_reset Release all child elements.
+ * @param it The map to reset.
+ */
+void tasn1_map_reset(map_t *it);
+
+/**
+ * @brief tasn1_init_item Initialize an item struct.
+ * @param it Pointer to the struct to initiaize.
+ * @param key Pointer to the key.
+ * @param val Pointer to the value.
+ */
+void tasn1_init_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val);
+
+/**
+ * @brief new_item Create a new map item on the heap.
+ * @param key Item key.
+ * @param val Item value.
+ * @return New item pointer or NULL, if out of memory.
+ */
+item_t *tasn1_new_item(tasn1_node_t *key, tasn1_node_t *val);
+#define tasn1_new_string_item(MAP, KEY, COPY, VAL) \
+    tasn1_new_item(MAP, tasn1_new_octet_sequence((const TASN1_OCTET_T *)KEY, strlen(KEY) + 1 , COPY), VAL)
+
+/**
+ * @brief item_free Free an item.
+ * @param it The item to free.
+ */
+void tasn1_item_free(item_t *it);
+
+/**
+ * @brief tasn1_reset_item Reset item with new values.
+ * @param it. Item to reset.
+ * @param key. New key or NULL to keep current key.
+ * @param val. New value or NULL to keep current value.
+ */
+void tasn1_reset_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val);
+
+/**
  * @brief Add item to a map
  * 
  * @param map The map to add this item to.
- * @param key Item key 
- * @param val Item value
+ * @param item The item to add
  * @return int Error code. 0 is OK
  */
-int tasn1_add_map_item(tasn1_node_t *map, tasn1_node_t *key, tasn1_node_t *val);
+int tasn1_map_add_item(tasn1_node_t *map, item_t *item);
 
-#define tasn1_add_map_string(MAP, KEY, COPY, VAL) \
-    tasn1_add_map_item(MAP, tasn1_new_octet_sequence((const TASN1_OCTET_T *)KEY, strlen(KEY) + 1 , COPY), VAL)
+/**
+ * @brief tasn1_init_number Initialize a number structure.
+ * @param it The number structure to initialize.
+ */
+void tasn1_init_number(number_t *it, TASN1_NUMBER_T n);
 
 /**
  * @brief Create new asn1_node for number.
@@ -72,13 +155,21 @@ int tasn1_add_map_item(tasn1_node_t *map, tasn1_node_t *key, tasn1_node_t *val);
 tasn1_node_t *tasn1_new_number(TASN1_NUMBER_T n);
 
 /**
- * @brief Create new asn1_node for boolean.
- * 
- * @param f Boolean to store.
- * @return tasn1_node_t* New asn1_node.
+ * @brief tasn1_reset_number. Reset number with a new value.
+ * @param it. Number item to reset.
+ * @param n. New value.
  */
-#define tasn1_new_bool(F) \
-    tasn1_new_number((F) ? 1 : 0)
+void tasn1_reset_number(number_t *it, TASN1_NUMBER_T n);
+
+/**
+ * @brief tasn1_unlink Remove node from a list.
+ * @param it The node to unlink.
+ */
+static inline void tasn1_unlink(tasn1_node_t *it)
+{
+    if (it)
+        list_del_init(&it->list);
+}
 
 /**
  * @brief Get number of octets required for serialization of this node.
@@ -140,9 +231,6 @@ int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
  * @return Pointer to C-string or NULL, if no C-string there.
  */
 const char *tasn1_get_string(const TASN1_OCTET_T *po);
-
-#define TASN1_ITERATOR_INIT(name) { .ct = TASN1_INVALID, .p = NULL, .c = 0 }
-#define TASN1_ITERATOR(name) tasn1_iterator name = TASN1_ITERATOR_INIT(name)
 
 /**
  * @brief tasn1_iterator_set Initialize an existing iterator with a

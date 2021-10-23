@@ -14,7 +14,8 @@ void Map::add(Node &key, Node &val) {
         throw std::runtime_error("Val is already contained");
     key.setContained();
     val.setContained();
-    ::tasn1_add_map_item(node, key.getNode(), val.getNode());
+    item_t *item{::tasn1_new_item(key.getNode(), val.getNode())};
+    ::tasn1_map_add_item(node, item);
 }
 
 void Map::add(const std::string &key, Node &val) {

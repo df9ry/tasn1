@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cctype>
 #include <climits>
+#include <clist.h>
 
 using namespace std;
 using namespace jsonx;
@@ -191,12 +192,12 @@ static void c_tests() {
     const TASN1_OCTET_T *po;
     TASN1_SIZE_T         co;
 
-    node = tasn1_new_octet_sequence(buf, 0, false);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    octet_sequence_t s_node;
+    tasn1_init_octet_sequence(&s_node, buf, 0);
+    assert(tasn1_size(&s_node.node) == 1);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_OCTET_SEQUENCE);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 1);
     assert(co == 0);
@@ -307,12 +308,10 @@ static void c_tests() {
 
     const char *astring;
 
-    node = tasn1_new_string("", false);
-    assert(node);
-    assert(tasn1_size(node) == 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_string(&s_node, "");
+    assert(tasn1_size(&s_node.node) == 2);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == 2);
-    tasn1_free(node);
     astring = tasn1_get_string(buf);
     assert(astring);
     assert(strcmp(astring, "") == 0);
@@ -400,10 +399,17 @@ static void c_tests() {
     tasn1_node_t *map1 = tasn1_new_map();
     assert(map1);
 
-    erc = tasn1_add_map_string(map1, "KEY1", false, tasn1_new_string("VAL1", false));
+    item_t *item1 = tasn1_new_item(tasn1_new_string("KEY1", false), tasn1_new_string("VAL1", false));
+    erc = tasn1_map_add_item(map1, item1);
     assert(erc == 0);
 
-    erc = tasn1_add_map_string(map1, "KEY2", false, tasn1_new_bool(true));
+    octet_sequence_t key2;
+    tasn1_init_string(&key2, "KEY2");
+    number_t val2;
+    tasn1_init_number(&val2, true);
+    item item2;
+    tasn1_init_item(&item2, &key2.node, &val2.node);
+    erc = tasn1_map_add_item(map1, &item2);
     assert(erc == 0);
 
     int size1 = tasn1_size(map1);
