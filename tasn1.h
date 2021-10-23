@@ -1,11 +1,13 @@
 #ifndef TASN1_H
 #define TASN1_H
 
-#include "tasn1/types.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "tasn1/types.h"
+
+#undef HAVE_HEAP // Don't use the heap. Good for very small devices.
 
 /**
  * @brief Initialize octet sequence.
@@ -28,6 +30,7 @@ void tasn1_reset_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, T
 #define tasn1_reset_string(O,S) \
     tasn1_reset_octet_sequence(O, (const TASN1_OCTET_T *)S, strlen(S) + 1)
 
+#ifdef HAVE_HEAP
 /**
  * @brief Create new asn1_node for octet sequence.
  * 
@@ -37,10 +40,12 @@ void tasn1_reset_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, T
  * @return tasn1_node_t* New asn1_node
  */
 tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co, bool copy);
+#endif
 
 #define tasn1_init_string(N,S) \
     tasn1_init_octet_sequence(N, (const TASN1_OCTET_T *)S, strlen(S) + 1);
 
+#ifdef HAVE_HEAP
 /**
  * @brief Create new asn1_node for string.
  * 
@@ -50,6 +55,7 @@ tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co,
  */
 #define tasn1_new_string(S, COPY) \
     tasn1_new_octet_sequence((const TASN1_OCTET_T *)S, strlen(S) + 1, COPY)
+#endif
 
 /**
  * @brief tasn1_init_array Initialize an array.
@@ -58,12 +64,14 @@ tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co,
  */
 void tasn1_init_array(array_t *it);
 
+#ifdef HAVE_HEAP
 /**
  * @brief Create new asn1_node for storing of array values
  * 
  * @return tasn1_node_t* New asn1_node 
  */
 tasn1_node_t *tasn1_new_array();
+#endif
 
 /**
  * @brief Add value to an array
@@ -86,12 +94,14 @@ void tasn1_array_reset(array_t *it);
  */
 void tasn1_init_map(map_t *it);
 
+#ifdef HAVE_HEAP
 /**
  * @brief Create new asn1_node for storing of map items
  * 
  * @return tasn1_node_t* New asn1_node
  */
 tasn1_node_t *tasn1_new_map();
+#endif
 
 /**
  * @brief tasn1_map_reset Release all child elements.
@@ -107,6 +117,7 @@ void tasn1_map_reset(map_t *it);
  */
 void tasn1_init_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val);
 
+#ifdef HAVE_HEAP
 /**
  * @brief new_item Create a new map item on the heap.
  * @param key Item key.
@@ -116,12 +127,15 @@ void tasn1_init_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val);
 item_t *tasn1_new_item(tasn1_node_t *key, tasn1_node_t *val);
 #define tasn1_new_string_item(MAP, KEY, COPY, VAL) \
     tasn1_new_item(MAP, tasn1_new_octet_sequence((const TASN1_OCTET_T *)KEY, strlen(KEY) + 1 , COPY), VAL)
+#endif
 
+#ifdef HAVE_HEAP
 /**
  * @brief item_free Free an item.
  * @param it The item to free.
  */
 void tasn1_item_free(item_t *it);
+#endif
 
 /**
  * @brief tasn1_reset_item Reset item with new values.
@@ -146,6 +160,7 @@ int tasn1_map_add_item(tasn1_node_t *map, item_t *item);
  */
 void tasn1_init_number(number_t *it, TASN1_NUMBER_T n);
 
+#ifdef HAVE_HEAP
 /**
  * @brief Create new asn1_node for number.
  * 
@@ -153,6 +168,7 @@ void tasn1_init_number(number_t *it, TASN1_NUMBER_T n);
  * @return tasn1_node_t* New asn1_node
  */
 tasn1_node_t *tasn1_new_number(TASN1_NUMBER_T n);
+#endif
 
 /**
  * @brief tasn1_reset_number. Reset number with a new value.
@@ -189,12 +205,14 @@ int tasn1_size(const tasn1_node_t *node);
  */
 int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET_T *po, TASN1_SIZE_T co);
 
+#ifdef HAVE_HEAP
 /**
  * @brief Release all ressources allocated by a node, incl. all related nodes.
  * 
  * @param node The node to release.
  */
 void tasn1_free(tasn1_node_t *node);
+#endif
 
 /**
  * @brief tasn1_get_type Get type of serialized node.
@@ -242,13 +260,16 @@ const char *tasn1_get_string(const TASN1_OCTET_T *po);
  */
 int tasn1_iterator_set(tasn1_iterator_t *iter, const TASN1_OCTET_T *po);
 
+#ifdef HAVE_HEAP
 /**
  * @brief tasn1_new_iterator Create and initialize a new iterator.
  *        Note: This iterator must be freed with tasn1_iterator_free!
  * @return New iterator or NULL, if no memeory is available.
  */
 tasn1_iterator_t *tasn1_new_iterator();
+#endif
 
+#ifdef HAVE_HEAP
 /**
  * @brief tasn1_new_iterator_set Create a new iterator and set it
  *        to a seriaized container.
@@ -258,11 +279,14 @@ tasn1_iterator_t *tasn1_new_iterator();
  *        available or po doesn't point to a valid container object.
  */
 tasn1_iterator_t *tasn1_new_iterator_set(const TASN1_OCTET_T *po);
+#endif
 
+#ifdef HAVE_HEAP
 /**
  * @brief tasn1_iterator_free Free an dynamically allocated iterator.
  */
 #define tasn1_iterator_free(iter) free(iter)
+#endif
 
 /**
  * @brief tasn1_iterator_get Get position to the current item in the

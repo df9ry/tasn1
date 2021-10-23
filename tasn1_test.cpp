@@ -43,151 +43,128 @@ static void dump(TASN1_OCTET_T *pb, int cb) {
 static void c_tests() {
     int erc, n;
     TASN1_NUMBER_T number;
-
-    tasn1_node_t *node = NULL;
     TASN1_OCTET_T buf[BUF_S];
 
     assert(tasn1_get_type(NULL) == TASN1_INVALID);
 
     //// Test numbers ////
 
-    node = tasn1_new_number(SHRT_MIN);
-    assert(node);
-    assert(tasn1_size(node) == 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    number_t s_number;
+    tasn1_init_number(&s_number, SHRT_MIN);
+    assert(tasn1_size(&s_number.node) == 3);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 3);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == SHRT_MIN);
 
-    node = tasn1_new_number(-1234);
-    assert(node);
-    assert(tasn1_size(node) == 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, -1234);
+    assert(tasn1_size(&s_number.node) == 3);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 3);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == -1234);
 
-    node = tasn1_new_number(SCHAR_MIN);
-    assert(node);
-    assert(tasn1_size(node) == 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, SCHAR_MIN);
+    assert(tasn1_size(&s_number.node) == 2);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 2);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == SCHAR_MIN);
 
-    node = tasn1_new_number(-56);
-    assert(node);
-    assert(tasn1_size(node) == 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, -56);
+    assert(tasn1_size(&s_number.node) == 2);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 2);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == -56);
 
-    node = tasn1_new_number(-16);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, -16);
+    assert(tasn1_size(&s_number.node) == 1);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == -16);
 
-    node = tasn1_new_number(-9);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, -9);
+    assert(tasn1_size(&s_number.node) == 1);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == -9);
 
-    node = tasn1_new_number(0);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, 0);
+    assert(tasn1_size(&s_number.node) == 1);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == 0);
 
-    node = tasn1_new_number(11);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, 11);
+    assert(tasn1_size(&s_number.node) == 1);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == 11);
 
-    node = tasn1_new_number(15);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, 15);
+    assert(tasn1_size(&s_number.node) == 1);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 1);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == 15);
 
-    node = tasn1_new_number(99);
-    assert(node);
-    assert(tasn1_size(node) == 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, 99);
+    assert(tasn1_size(&s_number.node) == 2);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 2);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == 99);
 
-    node = tasn1_new_number(SCHAR_MAX);
-    assert(node);
-    assert(tasn1_size(node) == 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, SCHAR_MAX);
+    assert(tasn1_size(&s_number.node) == 2);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 2);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == SCHAR_MAX);
 
-    node = tasn1_new_number(5678);
-    assert(node);
-    assert(tasn1_size(node) == 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, 5678);
+    assert(tasn1_size(&s_number.node) == 3);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 3);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == 5678);
 
-    node = tasn1_new_number(SHRT_MAX);
-    assert(node);
-    assert(tasn1_size(node) == 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_number(&s_number, SHRT_MAX);
+    assert(tasn1_size(&s_number.node) == 3);
+    n = tasn1_serialize(&s_number.node, buf, BUF_S);
     assert(n == 3);
     assert(tasn1_get_type(buf) == TASN1_NUMBER);
-    tasn1_free(node);
     assert(tasn1_get_number(buf, &number) == 0);
     assert(number == SHRT_MAX);
 
     //// Test octet sequence ////
 
+#ifdef HAVE_HEAP
     node = tasn1_new_octet_sequence(NULL, 0, false);
     assert(!node);
+#endif
 
+#ifdef HAVE_HEAP
     node = tasn1_new_octet_sequence(NULL, 0, true);
     assert(!node);
+#endif
 
     const TASN1_OCTET_T *po;
     TASN1_SIZE_T         co;
@@ -202,29 +179,17 @@ static void c_tests() {
     assert(po == buf + 1);
     assert(co == 0);
 
-    node = tasn1_new_octet_sequence(buf, 0, true);
-    assert(node);
-    assert(tasn1_size(node) == 1);
-    n = tasn1_serialize(node, buf, BUF_S);
-    assert(n == 1);
-    assert(tasn1_get_type(buf) == TASN1_OCTET_SEQUENCE);
-    tasn1_free(node);
-    assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
-    assert(po == buf + 1);
-    assert(co == 0);
-
     const TASN1_OCTET_T os_1[] { 0x01, 0x02, 0x03, 0x04 };
-    node = tasn1_new_octet_sequence(os_1, sizeof(os_1), false);
-    assert(node);
-    assert(tasn1_size(node) == sizeof(os_1) + 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_1, sizeof(os_1));
+    assert(tasn1_size(&s_node.node) == sizeof(os_1) + 1);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == sizeof(os_1) + 1);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 1);
     assert(co == sizeof(os_1));
     assert(memcmp(os_1, po, co) == 0);
 
+#ifdef HAVE_HEAP
     node = tasn1_new_octet_sequence(os_1, sizeof(os_1), true);
     assert(node);
     assert(tasn1_size(node) == sizeof(os_1) + 1);
@@ -235,17 +200,16 @@ static void c_tests() {
     assert(po == buf + 1);
     assert(co == sizeof(os_1));
     assert(memcmp(os_1, po, co) == 0);
+#endif
 
     const TASN1_OCTET_T os_2[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                                  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                                  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
                                  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e        };
-    node = tasn1_new_octet_sequence(os_2, sizeof(os_2), false);
-    assert(node);
-    assert(tasn1_size(node) == sizeof(os_2) + 1);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_2, sizeof(os_2));
+    assert(tasn1_size(&s_node.node) == sizeof(os_2) + 1);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == sizeof(os_2) + 1);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 1);
     assert(co == sizeof(os_2));
@@ -255,12 +219,10 @@ static void c_tests() {
                                  0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                                  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
                                  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f };
-    node = tasn1_new_octet_sequence(os_3, sizeof(os_3), false);
-    assert(node);
-    assert(tasn1_size(node) == sizeof(os_3) + 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_3, sizeof(os_3));
+    assert(tasn1_size(&s_node.node) == sizeof(os_3) + 2);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == sizeof(os_3) + 2);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 2);
     assert(co == sizeof(os_3));
@@ -269,12 +231,10 @@ static void c_tests() {
     TASN1_OCTET_T os_4[BUF_S];
     for (size_t i = 0; i < 256; os_4[i] = i ^ 0x55, ++i);
 
-    node = tasn1_new_octet_sequence(os_4, 255, false);
-    assert(node);
-    assert(tasn1_size(node) == 255 + 2);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_4, 255);
+    assert(tasn1_size(&s_node.node) == 255 + 2);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == 255 + 2);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 2);
     assert(co == 255);
@@ -282,12 +242,10 @@ static void c_tests() {
 
     os_4[256] = 0xf3;
 
-    node = tasn1_new_octet_sequence(os_4, 256, false);
-    assert(node);
-    assert(tasn1_size(node) == 256 + 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_4, 256);
+    assert(tasn1_size(&s_node.node) == 256 + 3);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == 256 + 3);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 3);
     assert(co == 256);
@@ -295,12 +253,10 @@ static void c_tests() {
 
     for (size_t i = 0; i < 1004; os_4[i] = i & 0x55, ++i);
 
-    node = tasn1_new_octet_sequence(os_4, 1004, false);
-    assert(node);
-    assert(tasn1_size(node) == 1004 + 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_octet_sequence(&s_node, os_4, 1004);
+    assert(tasn1_size(&s_node.node) == 1004 + 3);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == 1004 + 3);
-    tasn1_free(node);
     assert(tasn1_get_octetsequence(buf, &po, &co) == 0);
     assert(po == buf + 3);
     assert(co == 1004);
@@ -318,24 +274,22 @@ static void c_tests() {
 
     const char *test_string = "The quick brown fox jumps over the lazy dog, 1234567890";
 
-    node = tasn1_new_string(test_string, true);
-    assert(node);
-    assert(tasn1_size(node) == (int)strlen(test_string) + 3);
-    n = tasn1_serialize(node, buf, BUF_S);
+    tasn1_reset_string(&s_node, test_string);
+    assert(tasn1_size(&s_node.node) == (int)strlen(test_string) + 3);
+    n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == (int)strlen(test_string) + 3);
-    tasn1_free(node);
     astring = tasn1_get_string(buf);
     assert(astring);
     assert(strcmp(astring, test_string) == 0);
 
     //// Test arrays ////
 
-    node = tasn1_new_array();
-    assert(node);
-    n = tasn1_serialize(node, buf, BUF_S);
+    array_t s_array;
+    tasn1_init_array(&s_array);
+
+    n = tasn1_serialize(&s_array.node, buf, BUF_S);
     assert(n == 1);
-    assert(tasn1_size(node) == 1);
-    tasn1_free(node);
+    assert(tasn1_size(&s_array.node) == 1);
     assert(tasn1_get_type(buf) == TASN1_ARRAY);
 
     TASN1_ITERATOR(iter);
@@ -344,17 +298,15 @@ static void c_tests() {
     assert(tasn1_iterator_get(&iter) == NULL);
 
     const TASN1_OCTET_T *pb;
-    tasn1_node_t *container;
+    array_t container;
+    tasn1_init_array(&container);
 
+    octet_sequence_t s_os;
+    tasn1_init_string(&s_os, test_string);
     // Try it with one entry:
-    container = tasn1_new_array();
-    assert(container);
-    node = tasn1_new_string(test_string, true);
-    assert(node);
-    assert(tasn1_add_array_value(container, node) == 0);
-    n = tasn1_serialize(container, buf, BUF_S);
+    assert(tasn1_add_array_value(&container.node, &s_os.node) == 0);
+    n = tasn1_serialize(&container.node, buf, BUF_S);
     assert(n > 0);
-    tasn1_free(container);
     assert(tasn1_iterator_set(&iter, buf) == 0);
     pb = tasn1_iterator_get(&iter);
     assert(pb);
@@ -365,20 +317,23 @@ static void c_tests() {
     assert(!pb);
 
     // Try it with three entries:
-    container = tasn1_new_array();
-    assert(container);
-    node = tasn1_new_string(test_string, false);
-    assert(node);
-    assert(tasn1_add_array_value(container, node) == 0);
-    node = tasn1_new_array();
-    assert(node);
-    assert(tasn1_add_array_value(container, node) == 0);
-    node = tasn1_new_map();
-    assert(node);
-    assert(tasn1_add_array_value(container, node) == 0);
-    n = tasn1_serialize(container, buf, BUF_S);
+    tasn1_array_reset(&container);
+
+    octet_sequence_t e1;
+    tasn1_init_string(&e1, test_string);
+    assert(tasn1_add_array_value(&container.node, &e1.node) == 0);
+
+    array_t e2;
+    tasn1_init_array(&e2);
+    assert(tasn1_add_array_value(&container.node, &e2.node) == 0);
+
+    map_t e3;
+    tasn1_init_map(&e3);
+    assert(tasn1_add_array_value(&container.node, &e3.node) == 0);
+
+    n = tasn1_serialize(&container.node, buf, BUF_S);
     assert(n > 0);
-    tasn1_free(container);
+
     assert(tasn1_iterator_set(&iter, buf) == 0);
     pb = tasn1_iterator_get(&iter);
     assert(pb);
@@ -396,44 +351,46 @@ static void c_tests() {
 
     //// Test maps ////
 
-    tasn1_node_t *map1 = tasn1_new_map();
-    assert(map1);
+    map_t map1;
+    tasn1_init_map(&map1);
 
-    item_t *item1 = tasn1_new_item(tasn1_new_string("KEY1", false), tasn1_new_string("VAL1", false));
-    erc = tasn1_map_add_item(map1, item1);
+    octet_sequence_t key1, val1;
+    tasn1_init_string(&key1, "KEY1");
+    tasn1_init_string(&val1, "VAL1");
+    item_t item1;
+    tasn1_init_item(&item1, &key1.node, &val1.node);
+    erc = tasn1_map_add_item(&map1.node, &item1);
     assert(erc == 0);
 
     octet_sequence_t key2;
     tasn1_init_string(&key2, "KEY2");
     number_t val2;
     tasn1_init_number(&val2, true);
-    item item2;
+    item_t item2;
     tasn1_init_item(&item2, &key2.node, &val2.node);
-    erc = tasn1_map_add_item(map1, &item2);
+    erc = tasn1_map_add_item(&map1.node, &item2);
     assert(erc == 0);
 
-    int size1 = tasn1_size(map1);
+    int size1 = tasn1_size(&map1.node);
     assert(size1 > 0);
 #ifdef DUMP
     printf("Size = %i\n", size1);
 #endif
 
     TASN1_OCTET_T buf1[10];
-    erc = tasn1_serialize(map1, buf1, sizeof(buf1));
+    erc = tasn1_serialize(&map1.node, buf1, sizeof(buf1));
 #ifdef DUMP
     printf("erc = %i: %s\n", erc, strerror(-erc));
 #endif
     assert(erc < 0);
 
     TASN1_OCTET_T buf2[40];
-    int size2 = tasn1_serialize(map1, buf2, sizeof(buf2));
+    int size2 = tasn1_serialize(&map1.node, buf2, sizeof(buf2));
     assert(size2 > 0);
 #ifdef DUMP
     dump(buf2, size2);
 #endif
     assert(size2 == size1);
-
-    tasn1_free(map1);
 
     TASN1_ITERATOR(child_iter);
 

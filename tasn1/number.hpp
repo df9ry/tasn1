@@ -11,6 +11,9 @@ class Number: public Node
 public:
     Number(TASN1_NUMBER_T n);
     Number(bool b);
+
+private:
+    number_t number;
 };
 
 } // end namespace tasn1 //

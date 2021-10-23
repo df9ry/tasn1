@@ -3,9 +3,19 @@
 #include "tasn1/number.hpp"
 #include "tasn1.h"
 
+#include <algorithm>
+
 namespace tasn1 {
 
-Map::Map(): Node(tasn1_new_map()) {}
+Map::Map(): Node(&it.node) {
+    tasn1_init_map(&it);
+}
+
+Map::~Map() {
+    std::for_each(items.begin(), items.end(), [] (const std::unique_ptr<item_t> &pi) {
+        list_del(&pi->list);
+    });
+}
 
 void Map::add(Node &key, Node &val) {
     if (key.isContained())
@@ -14,8 +24,9 @@ void Map::add(Node &key, Node &val) {
         throw std::runtime_error("Val is already contained");
     key.setContained();
     val.setContained();
-    item_t *item{::tasn1_new_item(key.getNode(), val.getNode())};
-    ::tasn1_map_add_item(node, item);
+    item_t *item = new item_t();
+    tasn1_init_item(item, key.getNode(), val.getNode());
+    items.emplace_back(std::unique_ptr<item_t>(item));
 }
 
 void Map::add(const std::string &key, Node &val) {

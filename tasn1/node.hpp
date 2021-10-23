@@ -31,14 +31,14 @@ public:
         contained = true;
     }
 
-    struct tasn1_node *getNode() { return node; }
+    tasn1_node *getNode() { return node; }
 
     void serialize(vector_t &buffer);
 
 protected:
-    Node(struct tasn1_node *_node): node{_node} {}
+    Node(tasn1_node *_node): node{_node} {}
 
-    struct tasn1_node *node;
+    tasn1_node *node;
     bool contained{false};
 };
 

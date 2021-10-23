@@ -67,9 +67,6 @@ Node::Node(Node &&other) {
 }
 
 Node::~Node() {
-    if (!contained) {
-        ::tasn1_free(node);
-    }
     node = nullptr;
     contained = false;
 }

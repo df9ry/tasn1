@@ -4,13 +4,15 @@
 namespace tasn1 {
 
 OctetSequence::OctetSequence(const uint8_t *po, uint16_t co):
-    Node(::tasn1_new_octet_sequence(po, co, true))
+    Node(&octet_sequence.node)
 {
+        tasn1_init_octet_sequence(&octet_sequence, po, co);
 }
 
 OctetSequence::OctetSequence(const std::string &s):
-    Node(::tasn1_new_string(s.c_str(), true))
+    Node(&octet_sequence.node)
 {
+        tasn1_init_string(&octet_sequence, s.c_str());
 }
 
 } // end namespace tasn1 //

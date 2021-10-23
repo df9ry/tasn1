@@ -32,58 +32,64 @@ enum tasn1_type {
 struct tasn1_node {
     struct list_head list;
     tasn1_type_t type;
+#ifdef HAVE_HEAP
     bool on_heap;
+#endif
 };
 #define tasn1_node_t struct tasn1_node
 
 /**
  * @brief The octet_sequence struct
  */
-struct octet_sequence {
+struct tasn1_octet_sequence {
     tasn1_node_t         node;
     const TASN1_OCTET_T *p_data;
     TASN1_SIZE_T         s_data;
+#ifdef HAVE_HEAP
     bool                 is_copy;
+#endif
 };
-#define octet_sequence_t struct octet_sequence
+#define octet_sequence_t struct tasn1_octet_sequence
 
 /**
  * @brief The item struct
  */
-struct item {
+struct tasn1_item {
     struct list_head list;
+#ifdef HAVE_HEAP
     bool on_heap;
+#endif
     tasn1_node_t *p_key;
     tasn1_node_t *p_val;
 };
-#define item_t struct item
+#define item_t struct tasn1_item
 
 /**
  * @brief The map struct
  */
-struct map {
+struct tasn1_map {
     tasn1_node_t node;
     struct list_head children;
 };
-#define map_t struct map
+#define map_t struct tasn1_map
 
 /**
  * @brief The array struct
  */
-struct array {
+struct tasn1_array {
     tasn1_node_t node;
     struct list_head children;
 };
-#define array_t struct array
+#define array_t struct tasn1_array
 
 /**
  * @brief The number struct
  */
-struct number {
+struct tasn1_number {
     tasn1_node_t node;
     TASN1_NUMBER_T val;
 };
-#define number_t struct number
+#define number_t struct tasn1_number
 
 /**
  * @brief State for TASN1 scanner.
