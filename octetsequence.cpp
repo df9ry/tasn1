@@ -3,16 +3,31 @@
 
 namespace tasn1 {
 
-OctetSequence::OctetSequence(const uint8_t *po, uint16_t co):
-    Node(&octet_sequence.node)
+OctetSequence::OctetSequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co): Node()
 {
-        tasn1_init_octet_sequence(&octet_sequence, po, co);
+        pCopy = new TASN1_OCTET_T[co];
+        memcpy(pCopy, po, co);
+        cCopy = co;
+        tasn1_init_octet_sequence(&octet_sequence, pCopy, cCopy);
+        setNode(&octet_sequence.node);
 }
 
-OctetSequence::OctetSequence(const std::string &s):
-    Node(&octet_sequence.node)
+OctetSequence::OctetSequence(const std::string &s) : Node()
 {
-        tasn1_init_string(&octet_sequence, s.c_str());
+        size_t sz = s.length() + 1;
+        if (sz >= USHRT_MAX)
+                sz = USHRT_MAX - 1;
+        pCopy = new TASN1_OCTET_T[sz + 1];
+        memcpy(pCopy, s.c_str(), sz);
+        pCopy[sz] = '\0';
+        cCopy = sz + 1;
+        tasn1_init_octet_sequence(&octet_sequence, pCopy, cCopy);
+        setNode(&octet_sequence.node);
+}
+
+OctetSequence::~OctetSequence()
+{
+        delete[] pCopy;
 }
 
 } // end namespace tasn1 //

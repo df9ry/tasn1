@@ -5,10 +5,13 @@
 
 #include <algorithm>
 
+using namespace std;
+
 namespace tasn1 {
 
-Map::Map(): Node(&it.node) {
+Map::Map(): Node() {
     tasn1_init_map(&it);
+    setNode(&it.node);
 }
 
 Map::~Map() {
@@ -17,33 +20,35 @@ Map::~Map() {
     });
 }
 
-void Map::add(Node &key, Node &val) {
-    if (key.isContained())
+void Map::add(node_ptr_t key, node_ptr_t val) {
+    if (key->isContained())
         throw std::runtime_error("Key is already contained");
-    if (val.isContained())
+    if (val->isContained())
         throw std::runtime_error("Val is already contained");
-    key.setContained();
-    val.setContained();
+    key->setContained();
+    children.push_back(key);
+    val->setContained();
+    children.push_back(val);
     item_t *item = new item_t();
-    tasn1_init_item(item, key.getNode(), val.getNode());
+    tasn1_init_item(item, key->getNode(), val->getNode());
     items.emplace_back(std::unique_ptr<item_t>(item));
 }
 
-void Map::add(const std::string &key, Node &val) {
-    OctetSequence keySeq(key);
-    add(keySeq, val);
+void Map::add(const std::string &key, node_ptr_t val) {
+    OctetSequence *keySeq = new OctetSequence(key);
+    add(node_ptr_t(keySeq), val);
 }
 
 void Map::add(const std::string &key, const std::string &val) {
-    OctetSequence keySeq(key);
-    OctetSequence valSeq(val);
-    add(keySeq, valSeq);
+    OctetSequence *keySeq = new OctetSequence(key);
+    OctetSequence *valSeq = new OctetSequence(val);
+    add(node_ptr_t(keySeq), node_ptr_t(valSeq));
 }
 
 void Map::add(const std::string &key, int16_t val) {
-    OctetSequence keySeq(key);
-    Number num(val);
-    add(keySeq, num);
+    OctetSequence *keySeq = new OctetSequence(key);
+    Number *num = new Number(val);
+    add(node_ptr_t(keySeq), node_ptr_t(num));
 }
 
 } // end namespace tasn1 //

@@ -4,15 +4,16 @@
 #include "node.hpp"
 #include "tasn1.h"
 
+#include <list>
+#include <memory>
+
 namespace tasn1 {
 
-class Array: public Node
-{
+class Array: public Node {
 public:
     Array();
-    ~Array();
 
-    void add(Node &child);
+    void add(node_ptr_t child);
 
 private:
     array_t it;

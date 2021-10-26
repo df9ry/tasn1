@@ -6,6 +6,9 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include <string>
+#include <memory>
+#include <list>
 
 extern "C" {
     struct tasn1_node;
@@ -13,15 +16,18 @@ extern "C" {
 
 namespace tasn1 {
 
+class Node;
+
 typedef std::vector<unsigned char> vector_t;
+typedef std::shared_ptr<Node> node_ptr_t;
 
 class Node {
 public:
-    static Node fromJson(const jsonx::json &j);
+    static node_ptr_t fromJson(const jsonx::json &j);
 
-    Node() = delete;
+    Node() = default;
     Node(const Node &other) = delete;
-    Node(Node &&other);
+    Node(Node &&other) = delete;
     ~Node();
 
     bool isContained() const { return contained; }
@@ -31,15 +37,16 @@ public:
         contained = true;
     }
 
-    tasn1_node *getNode() { return node; }
-
     void serialize(vector_t &buffer);
 
-protected:
-    Node(tasn1_node *_node): node{_node} {}
+    tasn1_node *getNode() { return node; }
 
-    tasn1_node *node;
+protected:
+    void setNode(tasn1_node *_node) { node = _node; }
+
+    tasn1_node *node{nullptr};
     bool contained{false};
+    std::list<node_ptr_t> children{};
 };
 
 } // end namespace tasn1 //

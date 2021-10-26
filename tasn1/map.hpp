@@ -16,8 +16,8 @@ public:
     Map();
     ~Map();
 
-    void add(Node &key, Node &val);
-    void add(const std::string &key, Node &val);
+    void add(node_ptr_t key, node_ptr_t val);
+    void add(const std::string &key, node_ptr_t val);
     void add(const std::string &key, const std::string &val);
     void add(const std::string &key, TASN1_NUMBER_T val);
 

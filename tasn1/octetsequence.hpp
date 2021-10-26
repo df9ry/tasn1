@@ -13,9 +13,12 @@ class OctetSequence: public Node
 public:
     OctetSequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co);
     OctetSequence(const std::string &s);
+    ~OctetSequence();
 
 private:
     octet_sequence_t octet_sequence;
+    TASN1_OCTET_T *pCopy;
+    TASN1_SIZE_T   cCopy;
 };
 
 } // end namespace tasn1 //
