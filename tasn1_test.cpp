@@ -13,10 +13,13 @@
 #include <cctype>
 #include <climits>
 #include <clist.h>
+#include <tisslib.hpp>
 
 using namespace std;
 using namespace jsonx;
 using namespace tasn1;
+
+#define DUMP
 
 #ifdef DUMP
 static void dump(TASN1_OCTET_T *pb, int cb) {
@@ -37,6 +40,71 @@ static void dump(TASN1_OCTET_T *pb, int cb) {
     printf("\n");
 }
 #endif
+
+static tasn1::node_ptr_t ArrayOfByte(const uint8_t *pb, size_t cb) {
+    auto *rg{new tasn1::Array()};
+    while (cb-- > 0) {
+        rg->add(tasn1::node_ptr_t(
+                    new tasn1::Number(static_cast<TASN1_NUMBER_T>(*pb++))));
+    }
+    return tasn1::node_ptr_t(rg);
+}
+
+static void handleCallDISC()
+{
+    uint8_t adr[2] = { 208, 1 };
+    uint8_t mac[4] = { 0x40, 0x00, 0xf1, 0x6e };
+    uint8_t groups[] = { 1, 3, 4 };
+
+    vector<uint8_t> telegram{};
+    telegram.push_back(0); // Master ID - Admin
+    telegram.push_back(1); // Submaster ID - Call operator
+    telegram.push_back(0b00000100); // Response, UI2
+
+    tasn1::Map response;
+    // request type
+    response.add(
+       tasn1::node_ptr_t(new tasn1::OctetSequence("requ")),
+       tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(tiss::UI2_DISC))));
+
+    // List of services:
+    auto *data{new tasn1::Array()};
+
+    // User manager:
+    auto *user_manager{new tasn1::Map()};
+    user_manager->add(
+            tasn1::node_ptr_t(new tasn1::OctetSequence("type")), // User manager
+            tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(1))));
+    data->add(tasn1::node_ptr_t(user_manager));
+
+    // TCU:
+    auto *tcu{new tasn1::Map()};
+    tcu->add(
+            tasn1::node_ptr_t(new tasn1::OctetSequence("type")),
+            tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(1))));
+    tcu->add(
+            tasn1::node_ptr_t(new tasn1::OctetSequence("adr")),
+            tasn1::node_ptr_t(ArrayOfByte(adr, sizeof(adr))));
+    tcu->add(
+            tasn1::node_ptr_t(new tasn1::OctetSequence("mac")),
+            tasn1::node_ptr_t(ArrayOfByte(mac, sizeof(mac))));
+    tcu->add(
+            tasn1::node_ptr_t(new tasn1::OctetSequence("groups")),
+            tasn1::node_ptr_t(ArrayOfByte(groups, sizeof(groups))));
+    data->add(tasn1::node_ptr_t(tcu));
+
+    response.add(
+       tasn1::node_ptr_t(new tasn1::OctetSequence("data")),
+       tasn1::node_ptr_t(data));
+
+    vector<TASN1_OCTET_T> payload;
+    response.serialize(payload);
+    telegram.insert(end(telegram), begin(payload), end(payload));
+    //transmit(telegram.data(), telegram.size());
+#ifdef DUMP
+    dump(telegram.data(), telegram.size());
+#endif
+}
 
 #define BUF_S 1024
 
@@ -304,7 +372,7 @@ static void c_tests() {
     octet_sequence_t s_os;
     tasn1_init_string(&s_os, test_string);
     // Try it with one entry:
-    assert(tasn1_add_array_value(&container.node, &s_os.node) == 0);
+    assert(tasn1_add_array_value(&container, &s_os.node) == 0);
     n = tasn1_serialize(&container.node, buf, BUF_S);
     assert(n > 0);
     assert(tasn1_iterator_set(&iter, buf) == 0);
@@ -321,15 +389,15 @@ static void c_tests() {
 
     octet_sequence_t e1;
     tasn1_init_string(&e1, test_string);
-    assert(tasn1_add_array_value(&container.node, &e1.node) == 0);
+    assert(tasn1_add_array_value(&container, &e1.node) == 0);
 
     array_t e2;
     tasn1_init_array(&e2);
-    assert(tasn1_add_array_value(&container.node, &e2.node) == 0);
+    assert(tasn1_add_array_value(&container, &e2.node) == 0);
 
     map_t e3;
     tasn1_init_map(&e3);
-    assert(tasn1_add_array_value(&container.node, &e3.node) == 0);
+    assert(tasn1_add_array_value(&container, &e3.node) == 0);
 
     n = tasn1_serialize(&container.node, buf, BUF_S);
     assert(n > 0);
@@ -359,7 +427,7 @@ static void c_tests() {
     tasn1_init_string(&val1, "VAL1");
     item_t item1;
     tasn1_init_item(&item1, &key1.node, &val1.node);
-    erc = tasn1_map_add_item(&map1.node, &item1);
+    erc = tasn1_map_add_item(&map1, &item1);
     assert(erc == 0);
 
     octet_sequence_t key2;
@@ -368,7 +436,7 @@ static void c_tests() {
     tasn1_init_number(&val2, true);
     item_t item2;
     tasn1_init_item(&item2, &key2.node, &val2.node);
-    erc = tasn1_map_add_item(&map1.node, &item2);
+    erc = tasn1_map_add_item(&map1, &item2);
     assert(erc == 0);
 
     int size1 = tasn1_size(&map1.node);
@@ -443,26 +511,41 @@ static void c_tests() {
 }
 
 static void cpp_tests() {
-    tasn1::Map map1;
-    tasn1::OctetSequence val1("VAL1");
-    map1.add("KEY1", val1);
-
-    tasn1::Number val2(true);
-    map1.add("KEY2", val2);
-
-    try {
-        map1.add("KEY3", val1);
-        assert(false);
-    }  catch (const std::runtime_error &) {
-        // Expected
+    tasn1::vector_t buffer;
+    {
+        Array rg1;
+        auto *val1 = new OctetSequence ("VAL1");
+        rg1.add(node_ptr_t(val1));
+        auto *val2 = new OctetSequence ("VAL2");
+        rg1.add(node_ptr_t(val2));
+        auto *val3 = new OctetSequence ("VAL3");
+        rg1.add(node_ptr_t(val3));
+        rg1.serialize(buffer);
+#ifdef DUMP
+        dump(buffer.data(), buffer.size());
+#endif
     }
 
-    tasn1::vector_t buffer;
-    map1.serialize(buffer);
+    {
+        Map map1;
+        auto *val1 = new OctetSequence ("VAL1");
+        map1.add("KEY1", node_ptr_t(val1));
 
+        auto *val2 = new Number(true);
+        map1.add("KEY2", node_ptr_t(val2));
+
+        try {
+            map1.add("KEY3", node_ptr_t(val1));
+            assert(false);
+        }  catch (const std::runtime_error &) {
+            // Expected
+        }
+
+        map1.serialize(buffer);
 #ifdef DUMP
-    dump(buffer.data(), buffer.size());
+        dump(buffer.data(), buffer.size());
 #endif
+    }
 
     json x9 = jarray({
         false,
@@ -475,8 +558,8 @@ static void cpp_tests() {
         "Bla"
     });
 
-    Node n1 = Node::fromJson(x9);
-    n1.serialize(buffer);
+    auto n1 = Node::fromJson(x9);
+    n1->serialize(buffer);
 
 #ifdef DUMP
     dump(buffer.data(), buffer.size());
@@ -486,8 +569,10 @@ static void cpp_tests() {
 int main() {
     printf("Running C tests ...\n");
     c_tests();
-    printf("Running C++ tests ...\n");
-    cpp_tests();
+    //printf("Running C++ tests ...\n");
+    //cpp_tests();
+    printf("Running Special test for android ...\n");
+    handleCallDISC();
     printf("Success!\n");
     return EXIT_SUCCESS;
 }

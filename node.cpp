@@ -6,6 +6,7 @@
 #include "tasn1.h"
 
 #include <functional>
+#include <algorithm>
 #include <cerrno>
 
 using namespace std;
@@ -58,6 +59,65 @@ node_ptr_t Node::fromJson(const jsonx::json &j) {
     default:
         return node_ptr_t(new OctetSequence(NULL, 0));
     } // end switch //
+}
+
+static jsonx::json mapToJson(const uint8_t *pb) {
+
+}
+
+static jsonx::json arrayToJson(const uint8_t *pb) {
+
+
+}
+
+static jsonx::json numberToJson(const uint8_t *pb) {
+    int16_t n;
+    int erc = tasn1_get_number(pb, &n);
+    if (erc)
+        return jsonx::json::undefined;
+    jsonx::json res = n;
+    return res;
+}
+
+static jsonx::json octetSequenceToJson(const uint8_t *pb) {
+    const uint8_t *pb_r;
+    uint16_t cb_r;
+
+    int erc = tasn1_get_octetsequence(pb, &pb_r, &cb_r);
+    if (erc)
+        return jsonx::json::undefined;
+    if ((!pb_r) || (!cb_r))
+        return jsonx::json::null;
+    if (pb_r[cb_r-1] != '\0') // We only support strings!
+        return jsonx::json::undefined;
+    jsonx::json res = (char *)pb_r;
+    return res;
+}
+
+static jsonx::json valueToJson(const uint8_t *pb) {
+    switch (tasn1_get_type(pb)) {
+    case TASN1_MAP :
+        return mapToJson(pb);
+    case TASN1_ARRAY :
+        return arrayToJson(pb);
+    case TASN1_NUMBER :
+        return numberToJson(pb);
+    case TASN1_OCTET_SEQUENCE :
+        return octetSequenceToJson(pb);
+    default:
+        return jsonx::json::undefined;
+    } // end switch //
+}
+
+jsonx::json Node::toJson(const uint8_t *pb, uint16_t cb) {
+    if ((!pb) || (!cb))
+        return jsonx::json::null;
+
+    int sz = tasn1_get_total_size(pb);
+    if ((sz < 0) || (sz > cb))
+        return jsonx::json::undefined;
+
+    return valueToJson(pb);
 }
 
 Node::~Node() {

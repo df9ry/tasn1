@@ -14,12 +14,6 @@ Map::Map(): Node() {
     setNode(&it.node);
 }
 
-Map::~Map() {
-    std::for_each(items.begin(), items.end(), [] (const std::unique_ptr<item_t> &pi) {
-        list_del(&pi->list);
-    });
-}
-
 void Map::add(node_ptr_t key, node_ptr_t val) {
     if (key->isContained())
         throw std::runtime_error("Key is already contained");
@@ -32,6 +26,7 @@ void Map::add(node_ptr_t key, node_ptr_t val) {
     item_t *item = new item_t();
     tasn1_init_item(item, key->getNode(), val->getNode());
     items.emplace_back(std::unique_ptr<item_t>(item));
+    tasn1_map_add_item(&it, item);
 }
 
 void Map::add(const std::string &key, node_ptr_t val) {

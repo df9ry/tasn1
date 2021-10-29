@@ -14,7 +14,6 @@ class Map: public Node
 {
 public:
     Map();
-    ~Map();
 
     void add(node_ptr_t key, node_ptr_t val);
     void add(const std::string &key, node_ptr_t val);

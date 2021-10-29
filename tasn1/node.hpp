@@ -30,6 +30,8 @@ public:
     Node(Node &&other) = delete;
     ~Node();
 
+    static jsonx::json toJson(const uint8_t *pb, uint16_t cb);
+
     bool isContained() const { return contained; }
     void setContained() {
         if (contained)

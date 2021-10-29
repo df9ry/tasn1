@@ -12,7 +12,7 @@ Array::Array(): Node() {
 
 void Array::add(node_ptr_t child) {
     child->setContained();
-    tasn1_add_array_value(node, child->getNode());
+    tasn1_add_array_value(&it, child->getNode());
     children.push_back(child);
 }
 

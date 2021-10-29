@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 project(tasn1 LANGUAGES C CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 include_directories(AFTER SYSTEM "/usr/local/${CMAKE_BUILD_TYPE}/include")
 
 set(SOURCES
@@ -34,6 +35,9 @@ add_library(tasn1 STATIC
 target_compile_features(tasn1
     PUBLIC cxx_std_17)
 
+target_compile_options(tasn1
+    PRIVATE -Wno-deprecated-declarations -Wno-extern-c-compat)
+
 target_include_directories(tasn1 PUBLIC
     BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/include/")
 
@@ -49,12 +53,20 @@ install(TARGETS tasn1
   PUBLIC_HEADER DESTINATION "${CMAKE_BUILD_TYPE}/include/tasn1")
 
 set(APP_EXE tasn1_test)
+
 add_executable(${APP_EXE} tasn1_test.cpp)
+
+target_compile_options(tasn1_test
+    PRIVATE -Wno-extern-c-compat -Wno-deprecated-declarations)
+
 target_include_directories(${APP_EXE} PUBLIC
     BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/include/")
+
 target_link_directories(${APP_EXE} PUBLIC
     BEFORE "${CMAKE_INSTALL_PREFIX}/${CMAKE_BUILD_TYPE}/lib/")
+
 target_link_libraries(${APP_EXE}
     tasn1
     JsonX)
+
 add_test(Test, ${APP_EXE})

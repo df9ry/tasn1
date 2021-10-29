@@ -27,7 +27,7 @@ static int _get_content_size(const TASN1_OCTET_T *po)
     } // end switch //
 }
 
-static int _get_total_size(const TASN1_OCTET_T *po)
+int tasn1_get_total_size(const TASN1_OCTET_T *po)
 {
     int content_size = _get_content_size(po);
     if (content_size < 0)
@@ -211,21 +211,30 @@ void tasn1_item_free(item_t *it) {
 }
 #endif
 
+static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co);
+
 static int serialize_item(const item_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
-    array_t item;
-    tasn1_init_array(&item);
-    int erc;
-    erc = tasn1_add_array_value(&item.node, it->p_key);
-    if (erc != 0) {
-        return -erc;
+
+    array_t item_rg;
+    tasn1_init_array(&item_rg);
+    INIT_LIST_HEAD(&it->p_key->list);
+    tasn1_add_array_value(&item_rg, it->p_key);
+    INIT_LIST_HEAD(&it->p_val->list);
+    tasn1_add_array_value(&item_rg, it->p_val);
+    int n = serialize_array(&item_rg, po, co);
+    if (n < 0) {
+        return -n;
     }
-    erc = tasn1_add_array_value(&item.node, it->p_val);
-    if (erc != 0) {
-        return -erc;
+    if (n > co) {
+        return -ENOMEM;
     }
-    return tasn1_serialize(&item.node, po, co);
+    if (po)
+        po += n;
+    co -= n;
+
+    return n;
 }
 
 static int map_size_without_header(const map_t *it) {
@@ -298,10 +307,10 @@ static void map_free(map_t *it) {
 }
 #endif
 
-int tasn1_map_add_item(tasn1_node_t *map, item_t *item) {
+int tasn1_map_add_item(map_t *map, item_t *item) {
     if ((!map) || (!item))
         return -ENOENT;
-    if ((map->type != TASN1_MAP) || (!list_empty(&item->list)))
+    if (!list_empty(&item->list))
         return -EINVAL;
     list_add_tail(&item->list, &((map_t *)map)->children);
     return 0;
@@ -408,12 +417,12 @@ static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co
     return n;
 }
 
-int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val) {
+int tasn1_add_array_value(array_t *array, tasn1_node_t *val) {
     if ((!array) || (!val))
         return -ENOENT;
-    if ((array->type != TASN1_ARRAY) && (!list_empty(&val->list)))
+    if (!list_empty(&val->list))
         return -EINVAL;
-    list_add_tail(&val->list, &((array_t *)array)->children);
+    list_add_tail(&val->list, &array->children);
     return 0;
 }
 
@@ -674,7 +683,7 @@ const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter)
         iterator_init(iter);
         return result;
     }
-    int total_size = _get_total_size(iter->p);
+    int total_size = tasn1_get_total_size(iter->p);
     if ((total_size < 0) || (total_size >= iter->c)) {
         iterator_init(iter);
         return result;

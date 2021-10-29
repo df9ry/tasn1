@@ -80,7 +80,7 @@ tasn1_node_t *tasn1_new_array();
  * @param val Value to add
  * @return int Error code. 0 is OK
  */
-int tasn1_add_array_value(tasn1_node_t *array, tasn1_node_t *val);
+int tasn1_add_array_value(array_t *array, tasn1_node_t *val);
 
 /**
  * @brief tasn1_array_reset Release all child elements.
@@ -152,7 +152,7 @@ void tasn1_reset_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val);
  * @param item The item to add
  * @return int Error code. 0 is OK
  */
-int tasn1_map_add_item(tasn1_node_t *map, item_t *item);
+int tasn1_map_add_item(map_t *map, item_t *item);
 
 /**
  * @brief tasn1_init_number Initialize a number structure.
@@ -296,6 +296,13 @@ tasn1_iterator_t *tasn1_new_iterator_set(const TASN1_OCTET_T *po);
  *         available (Not a container or end of list).
  */
 const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter);
+
+/**
+ * @brief tasn1_get_value_size Get size in stream.
+ * @param po Pointer to the stream
+ * @return Number of octets occupied by this value;
+ */
+int tasn1_get_total_size(const TASN1_OCTET_T *po);
 
 #ifdef __cplusplus
 }
