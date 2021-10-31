@@ -300,9 +300,26 @@ const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter);
 /**
  * @brief tasn1_get_value_size Get size in stream.
  * @param po Pointer to the stream
- * @return Number of octets occupied by this value;
+ * @return Number of octets occupied by this value or negative error
+ *         number;
  */
 int tasn1_get_total_size(const TASN1_OCTET_T *po);
+
+/**
+ * @brief tasn1_get_header_size Get size of header in stream.
+ * @param po Pointer to the stream.
+ * @return Number of octets ocupied by the header.
+ */
+TASN1_SIZE_T tasn1_get_header_size(const TASN1_OCTET_T *po);
+
+/**
+ * @brief tasn1_get_content_size Get size of content after the
+ *        header in stream.
+ * @param po Pointer to the stream.
+ * @return Number of octets occupied by this value or negative error
+ *         number;
+ */
+int tasn1_get_content_size(const TASN1_OCTET_T *po);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,8 @@
 #include "tasn1/octetsequence.hpp"
 #include "tasn1.h"
 
+#include <climits>
+
 namespace tasn1 {
 
 OctetSequence::OctetSequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co): Node()

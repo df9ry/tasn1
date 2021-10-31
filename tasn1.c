@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-static TASN1_SIZE_T _get_header_size(const TASN1_OCTET_T *po)
+TASN1_SIZE_T tasn1_get_header_size(const TASN1_OCTET_T *po)
 {
     if (!po)
         return 0;
@@ -14,9 +14,13 @@ static TASN1_SIZE_T _get_header_size(const TASN1_OCTET_T *po)
     return 1 + ((*po) & 0x1f); // 1 + number of length bytes.
 }
 
-static int _get_content_size(const TASN1_OCTET_T *po)
+int tasn1_get_content_size(const TASN1_OCTET_T *po)
 {
-    if (!((*po) & 0x80)) // Short form
+    tasn1_type_t t = tasn1_get_type(po);
+    if (t == TASN1_NUMBER)
+        return 0;
+    bool long_form = ((*po) & 0x80);
+    if (!long_form) // Short form
         return (*po) & 0x1f;
     int length_bytes = (*po) & 0x1f;
     switch (length_bytes) {
@@ -29,10 +33,10 @@ static int _get_content_size(const TASN1_OCTET_T *po)
 
 int tasn1_get_total_size(const TASN1_OCTET_T *po)
 {
-    int content_size = _get_content_size(po);
+    int content_size = tasn1_get_content_size(po);
     if (content_size < 0)
         return content_size;
-    TASN1_SIZE_T header_size = _get_header_size(po);
+    TASN1_SIZE_T header_size = tasn1_get_header_size(po);
     if (content_size > (USHRT_MAX - header_size))
         return -ENOMEM;
     return header_size + content_size;
@@ -230,9 +234,9 @@ static int serialize_item(const item_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) 
     if (n > co) {
         return -ENOMEM;
     }
-    if (po)
-        po += n;
-    co -= n;
+    //if (po)
+    //    po += n;
+    //co -= n;
 
     return n;
 }
@@ -257,6 +261,8 @@ static int map_size_without_header(const map_t *it) {
 static int serialize_map(const map_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
+    //if (po)
+    //    fprintf(stderr, "serialize_map() {\n");
     int size_without_header = map_size_without_header(it);
     if (size_without_header < 0)
         return size_without_header;
@@ -287,6 +293,8 @@ static int serialize_map(const map_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
         n += m;
     }
 
+    //if (po)
+    //    fprintf(stderr, "serialize_map() }\n");
     return n;
 }
 
@@ -387,6 +395,8 @@ static int array_size_without_header(const array_t *it) {
 static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
+    //if (po)
+    //    fprintf(stderr, "serialize_array() [\n");
     int size_without_header = array_size_without_header(it);
     if (size_without_header < 0)
         return size_without_header;
@@ -414,13 +424,15 @@ static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co
         n += m;
     }
 
+    //if (po)
+    //    fprintf(stderr, "serialize_array() ]\n");
     return n;
 }
 
 int tasn1_add_array_value(array_t *array, tasn1_node_t *val) {
     if ((!array) || (!val))
         return -ENOENT;
-    if (!list_empty(&val->list))
+    if (!list_empty(&val->list)) // val already in another list!
         return -EINVAL;
     list_add_tail(&val->list, &array->children);
     return 0;
@@ -430,11 +442,7 @@ void tasn1_array_reset(array_t *it)
 {
     if (!it)
         return;
-    struct list_head *pos;
-    struct list_head *n;
-    list_for_each_safe(pos, n, &it->children) {
-        list_del_init(pos);
-    }
+    INIT_LIST_HEAD(&it->children);
 }
 
 void tasn1_init_number(number_t *it, TASN1_NUMBER_T n)
@@ -474,6 +482,8 @@ static void number_free(number_t *it) {
 
 static int serialize_number(const number_t *number, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     TASN1_NUMBER_T val = number->val;
+    //if (po)
+    //    fprintf(stderr, "serialize_number(%i)\n", val);
     if ((val >= -16) && (val < 16)) {
         if (co < 1)
             return -ENOMEM;
@@ -567,20 +577,24 @@ int tasn1_get_number(const TASN1_OCTET_T *po, TASN1_NUMBER_T *pn)
             lsb = *(po + 1);
             msb = (lsb & 0x80) ? 0xff : 0x00;
             *pn = (msb << 8) | lsb;
+            //fprintf(stderr, "tasn1_get_number(%i)\n", *pn);
             return 0;
         case 2:
             lsb = *(po + 2);
             msb = *(po + 1);
             *pn = (msb << 8) | lsb;
+            //fprintf(stderr, "tasn1_get_number(%i)\n", *pn);
             return 0;
         default:
             *pn = -1;
+            //fprintf(stderr, "tasn1_get_number() error\n");
             return EINVAL;
         } // end switch //
     }
     lsb = (*po) & 0x001f;
     msb = (lsb & 0x0010) ? 0xffe0 : 0x0000;
     (*pn) = msb | lsb;
+    //fprintf(stderr, "tasn1_get_number(%i)\n", *pn);
     return 0;
 }
 
@@ -592,10 +606,10 @@ int tasn1_get_octetsequence(const TASN1_OCTET_T *po,
     if (tasn1_get_type(po) != TASN1_OCTET_SEQUENCE)
         return EINVAL;
 
-    int size = _get_content_size(po);
+    int size = tasn1_get_content_size(po);
     if ((size < 0) || (size > USHRT_MAX))
         return EINVAL;
-    int size_size = _get_header_size(po);
+    int size_size = tasn1_get_header_size(po);
     if ((size_size < 1) || (size_size > 3))
         return EINVAL;
     if (ppo)
@@ -634,10 +648,10 @@ int tasn1_iterator_set(tasn1_iterator_t *iter, const TASN1_OCTET_T *po)
     iter->ct = tasn1_get_type(po);
     if ((iter->ct != TASN1_ARRAY) && (iter->ct != TASN1_MAP))
         return EINVAL;
-    int header_size = _get_header_size(po);
+    int header_size = tasn1_get_header_size(po);
     if (header_size < 0)
         return EINVAL;
-    int content_size = _get_content_size(po);
+    int content_size = tasn1_get_content_size(po);
     if (content_size < 0)
         return EINVAL;
     iter->p = po + header_size; // Start at content
@@ -678,7 +692,7 @@ const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter)
     if ((!iter) || (iter->ct == TASN1_INVALID) || (iter->p == NULL) || (iter->c == 0))
         return NULL;
     const TASN1_OCTET_T *result = iter->p;
-    int content_size = _get_content_size(iter->p);
+    int content_size = tasn1_get_content_size(iter->p);
     if ((content_size < 0) || (content_size > iter->c)) {
         iterator_init(iter);
         return result;

@@ -25,6 +25,7 @@ set(HEADERS
   tasn1/map.hpp
   tasn1/number.hpp
   tasn1/octetsequence.hpp
+  tasn1/range_exception.hpp
 )
 
 add_library(tasn1 STATIC

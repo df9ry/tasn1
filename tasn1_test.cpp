@@ -19,34 +19,36 @@ using namespace std;
 using namespace jsonx;
 using namespace tasn1;
 
-#define DUMP
-
 #ifdef DUMP
 static void dump(TASN1_OCTET_T *pb, int cb) {
-    printf("|");
-    for (int i = 0; i < cb; ++i) {
-        TASN1_OCTET_T o = pb[i];
-        printf("%02x|", o);
-    } // end for //
-    printf("\n");
-    printf("|");
-    for (int i = 0; i < cb; ++i) {
-        int c = pb[i];
-        if (isprint(c))
-            printf("%1c |", c);
-        else
-            printf(". |");
-    } // end for //
+    const int l = 16;
+    int i, k = 0;
+    while (k < cb) {
+        i = k;
+        printf("\n%04i: |", k);
+        for (int j = 0; ((i < cb) && (j < l)); ++i, ++j) {
+            TASN1_OCTET_T o = pb[i];
+            printf("%02x|", o);
+        }
+        i = k;
+        printf("\n      |");
+        for (int j = 0; ((i < cb) && (j < l)); ++i, ++j) {
+            int c = pb[i];
+            if (isprint(c))
+                printf("%1c |", c);
+            else
+                printf(". |");
+        } // end for //
+        k += l;
+    } // end while //
     printf("\n");
 }
 #endif
 
 static tasn1::node_ptr_t ArrayOfByte(const uint8_t *pb, size_t cb) {
     auto *rg{new tasn1::Array()};
-    while (cb-- > 0) {
-        rg->add(tasn1::node_ptr_t(
-                    new tasn1::Number(static_cast<TASN1_NUMBER_T>(*pb++))));
-    }
+    while (cb-- > 0)
+        rg->add(*pb++);
     return tasn1::node_ptr_t(rg);
 }
 
@@ -63,45 +65,41 @@ static void handleCallDISC()
 
     tasn1::Map response;
     // request type
-    response.add(
-       tasn1::node_ptr_t(new tasn1::OctetSequence("requ")),
-       tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(tiss::UI2_DISC))));
+    response.add("requ", tiss::UI2_DISC);
 
     // List of services:
     auto *data{new tasn1::Array()};
 
     // User manager:
     auto *user_manager{new tasn1::Map()};
-    user_manager->add(
-            tasn1::node_ptr_t(new tasn1::OctetSequence("type")), // User manager
-            tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(1))));
+    user_manager->add("type", 1);
     data->add(tasn1::node_ptr_t(user_manager));
 
     // TCU:
     auto *tcu{new tasn1::Map()};
-    tcu->add(
-            tasn1::node_ptr_t(new tasn1::OctetSequence("type")),
-            tasn1::node_ptr_t(new tasn1::Number(static_cast<TASN1_NUMBER_T>(1))));
-    tcu->add(
-            tasn1::node_ptr_t(new tasn1::OctetSequence("adr")),
-            tasn1::node_ptr_t(ArrayOfByte(adr, sizeof(adr))));
-    tcu->add(
-            tasn1::node_ptr_t(new tasn1::OctetSequence("mac")),
-            tasn1::node_ptr_t(ArrayOfByte(mac, sizeof(mac))));
-    tcu->add(
-            tasn1::node_ptr_t(new tasn1::OctetSequence("groups")),
-            tasn1::node_ptr_t(ArrayOfByte(groups, sizeof(groups))));
+    tcu->add("type", 1);
+    tcu->add("adr", ArrayOfByte(adr, sizeof(adr)));
+    tcu->add("mac", ArrayOfByte(mac, sizeof(mac)));
+    tcu->add("groups", ArrayOfByte(groups, sizeof(groups)));
     data->add(tasn1::node_ptr_t(tcu));
 
-    response.add(
-       tasn1::node_ptr_t(new tasn1::OctetSequence("data")),
-       tasn1::node_ptr_t(data));
+    response.add("data", tasn1::node_ptr_t(data));
 
     vector<TASN1_OCTET_T> payload;
     response.serialize(payload);
+#ifdef DUMP
+    cout << "payload:";
+    dump(payload.data(), payload.size());
+#endif
+    json j = Node::toJson(payload.data(), payload.size());
+#ifdef DUMP
+    cout << "JSON> " << j << endl;
+#endif
+
     telegram.insert(end(telegram), begin(payload), end(payload));
     //transmit(telegram.data(), telegram.size());
 #ifdef DUMP
+    cout << endl << "telegram:";
     dump(telegram.data(), telegram.size());
 #endif
 }
@@ -112,6 +110,8 @@ static void c_tests() {
     int erc, n;
     TASN1_NUMBER_T number;
     TASN1_OCTET_T buf[BUF_S];
+    TASN1_OCTET_T buf1[10];
+    TASN1_OCTET_T buf2[40];
 
     assert(tasn1_get_type(NULL) == TASN1_INVALID);
 
@@ -346,18 +346,24 @@ static void c_tests() {
     assert(tasn1_size(&s_node.node) == (int)strlen(test_string) + 3);
     n = tasn1_serialize(&s_node.node, buf, BUF_S);
     assert(n == (int)strlen(test_string) + 3);
+
+#ifdef DUMP
+    printf("\n----> String:\n");
+    dump(buf, n);
+#endif
+
     astring = tasn1_get_string(buf);
     assert(astring);
     assert(strcmp(astring, test_string) == 0);
 
     //// Test arrays ////
 
-    array_t s_array;
-    tasn1_init_array(&s_array);
+    array_t s_array_1;
+    tasn1_init_array(&s_array_1);
 
-    n = tasn1_serialize(&s_array.node, buf, BUF_S);
+    n = tasn1_serialize(&s_array_1.node, buf, BUF_S);
     assert(n == 1);
-    assert(tasn1_size(&s_array.node) == 1);
+    assert(tasn1_size(&s_array_1.node) == 1);
     assert(tasn1_get_type(buf) == TASN1_ARRAY);
 
     TASN1_ITERATOR(iter);
@@ -366,15 +372,21 @@ static void c_tests() {
     assert(tasn1_iterator_get(&iter) == NULL);
 
     const TASN1_OCTET_T *pb;
-    array_t container;
-    tasn1_init_array(&container);
+    array_t s_array_2;
+    tasn1_init_array(&s_array_2);
 
     octet_sequence_t s_os;
     tasn1_init_string(&s_os, test_string);
     // Try it with one entry:
-    assert(tasn1_add_array_value(&container, &s_os.node) == 0);
-    n = tasn1_serialize(&container.node, buf, BUF_S);
+    assert(tasn1_add_array_value(&s_array_2, &s_os.node) == 0);
+    n = tasn1_serialize(&s_array_2.node, buf, BUF_S);
     assert(n > 0);
+
+#ifdef DUMP
+    printf("\n----> One entry:\n");
+    dump(buf, n);
+#endif
+
     assert(tasn1_iterator_set(&iter, buf) == 0);
     pb = tasn1_iterator_get(&iter);
     assert(pb);
@@ -385,22 +397,27 @@ static void c_tests() {
     assert(!pb);
 
     // Try it with three entries:
-    tasn1_array_reset(&container);
+    tasn1_array_reset(&s_array_2);
 
     octet_sequence_t e1;
     tasn1_init_string(&e1, test_string);
-    assert(tasn1_add_array_value(&container, &e1.node) == 0);
+    assert(tasn1_add_array_value(&s_array_2, &e1.node) == 0);
 
     array_t e2;
     tasn1_init_array(&e2);
-    assert(tasn1_add_array_value(&container, &e2.node) == 0);
+    assert(tasn1_add_array_value(&s_array_2, &e2.node) == 0);
 
     map_t e3;
     tasn1_init_map(&e3);
-    assert(tasn1_add_array_value(&container, &e3.node) == 0);
+    assert(tasn1_add_array_value(&s_array_2, &e3.node) == 0);
 
-    n = tasn1_serialize(&container.node, buf, BUF_S);
+    n = tasn1_serialize(&s_array_2.node, buf, BUF_S);
     assert(n > 0);
+
+#ifdef DUMP
+    printf("\n----> Three entries:\n");
+    dump(buf, n);
+#endif
 
     assert(tasn1_iterator_set(&iter, buf) == 0);
     pb = tasn1_iterator_get(&iter);
@@ -445,17 +462,14 @@ static void c_tests() {
     printf("Size = %i\n", size1);
 #endif
 
-    TASN1_OCTET_T buf1[10];
     erc = tasn1_serialize(&map1.node, buf1, sizeof(buf1));
-#ifdef DUMP
-    printf("erc = %i: %s\n", erc, strerror(-erc));
-#endif
-    assert(erc < 0);
+    //printf("erc = %i: %s\n", erc, strerror(-erc));
+    assert(erc == -12);
 
-    TASN1_OCTET_T buf2[40];
     int size2 = tasn1_serialize(&map1.node, buf2, sizeof(buf2));
     assert(size2 > 0);
 #ifdef DUMP
+    printf("\n----> Map KEY1:VAL1 KEY2:true:\n");
     dump(buf2, size2);
 #endif
     assert(size2 == size1);
@@ -512,67 +526,108 @@ static void c_tests() {
 
 static void cpp_tests() {
     tasn1::vector_t buffer;
+
     {
         Array rg1;
-        auto *val1 = new OctetSequence ("VAL1");
-        rg1.add(node_ptr_t(val1));
-        auto *val2 = new OctetSequence ("VAL2");
-        rg1.add(node_ptr_t(val2));
-        auto *val3 = new OctetSequence ("VAL3");
-        rg1.add(node_ptr_t(val3));
+        for (int i = -100; i <= 100; ++i) {
+            rg1.add(i);
+        }
         rg1.serialize(buffer);
 #ifdef DUMP
+        printf("\n----> for i = -100..100\n");
         dump(buffer.data(), buffer.size());
 #endif
+        json j = Node::toJson(buffer.data(), buffer.size());
+#ifdef DUMP
+        cout << "JSON> " << j << endl;
+#endif
+        json k = jsonx::jarray({
+            -100,-99,-98,-97,-96,-95,-94,-93,-92,-91,-90,-89,-88,-87,-86,-85,-84,-83,-82,-81,
+             -80,-79,-78,-77,-76,-75,-74,-73,-72,-71,-70,-69,-68,-67,-66,-65,-64,-63,-62,-61,
+             -60,-59,-58,-57,-56,-55,-54,-53,-52,-51,-50,-49,-48,-47,-46,-45,-44,-43,-42,-41,
+             -40,-39,-38,-37,-36,-35,-34,-33,-32,-31,-30,-29,-28,-27,-26,-25,-24,-23,-22,-21,
+             -20,-19,-18,-17,-16,-15,-14,-13,-12,-11,-10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+               0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+              20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+              40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+              60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+              80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+             100});
+        assert(k == j);
+    }
+
+    {
+        Array rg1;
+        rg1.add("VAL1");
+        rg1.add("VAL2");
+        rg1.add("VAL3");
+        rg1.serialize(buffer);
+#ifdef DUMP
+        printf("\n----> Array VAL1 VAL2 VAL3:\n");
+        dump(buffer.data(), buffer.size());
+#endif
+        json j = Node::toJson(buffer.data(), buffer.size());
+#ifdef DUMP
+        cout << "JSON> " << j << endl;
+#endif
+        json k = jsonx::jarray({"VAL1","VAL2","VAL3"});
+        assert(j == k);
     }
 
     {
         Map map1;
-        auto *val1 = new OctetSequence ("VAL1");
-        map1.add("KEY1", node_ptr_t(val1));
-
-        auto *val2 = new Number(true);
-        map1.add("KEY2", node_ptr_t(val2));
-
-        try {
-            map1.add("KEY3", node_ptr_t(val1));
-            assert(false);
-        }  catch (const std::runtime_error &) {
-            // Expected
-        }
-
+        map1.add("KEY1", "VAL1");
+        map1.add("KEY2", true);
+        map1.add("KEY3", 1234);
         map1.serialize(buffer);
 #ifdef DUMP
+        printf("\n----> Map KEY1:VAL1 KEY2:true KEY3:1234:\n");
         dump(buffer.data(), buffer.size());
 #endif
+        json j = Node::toJson(buffer.data(), buffer.size());
+#ifdef DUMP
+        cout << "JSON> " << j << endl;
+#endif
+        json k = jobject({
+                     jitem("KEY1","VAL1"),
+                     jitem("KEY2",static_cast<TASN1_NUMBER_T>(1)),
+                     jitem("KEY3",static_cast<TASN1_NUMBER_T>(1234))
+                 });
+        assert(j == k);
     }
 
-    json x9 = jarray({
-        false,
-        1,
-        jobject({
-            jitem("First",99),
-            jitem("Second","Blub"),
-            jitem("Third", true)
-        }),
-        "Bla"
-    });
-
-    auto n1 = Node::fromJson(x9);
-    n1->serialize(buffer);
-
+    {
+        json x9 = jarray({
+            static_cast<TASN1_NUMBER_T>(false),
+            static_cast<TASN1_NUMBER_T>(1),
+            jobject({
+                jitem("First",  static_cast<TASN1_NUMBER_T>(99)),
+                jitem("Second", "Blub"),
+                jitem("Third",  static_cast<TASN1_NUMBER_T>(true))
+            }),
+            "Bla"
+        });
+        auto n1 = Node::fromJson(x9);
+        n1->serialize(buffer);
 #ifdef DUMP
-    dump(buffer.data(), buffer.size());
+        printf("\n----> Map false, 1, { First:99, Second:Blub, Third:true } Bla:\n");
+        dump(buffer.data(), buffer.size());
 #endif
+        json j = Node::toJson(buffer.data(), buffer.size());
+#ifdef DUMP
+        cout << "JSON> " << j << endl;
+#endif
+        assert(j == x9);
+    }
 }
 
 int main() {
-    printf("Running C tests ...\n");
+    printf("\nRunning C tests ...\n");
     c_tests();
-    //printf("Running C++ tests ...\n");
-    //cpp_tests();
-    printf("Running Special test for android ...\n");
+    printf("\nRunning C++ tests ...\n");
+    cpp_tests();
+    printf("\nRunning Special test for android ...\n");
     handleCallDISC();
-    printf("Success!\n");
+    printf("\nSuccess!\n");
     return EXIT_SUCCESS;
 }

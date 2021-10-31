@@ -40,10 +40,4 @@ void Map::add(const std::string &key, const std::string &val) {
     add(node_ptr_t(keySeq), node_ptr_t(valSeq));
 }
 
-void Map::add(const std::string &key, int16_t val) {
-    OctetSequence *keySeq = new OctetSequence(key);
-    Number *num = new Number(val);
-    add(node_ptr_t(keySeq), node_ptr_t(num));
-}
-
 } // end namespace tasn1 //

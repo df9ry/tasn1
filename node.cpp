@@ -61,49 +61,97 @@ node_ptr_t Node::fromJson(const jsonx::json &j) {
     } // end switch //
 }
 
-static jsonx::json mapToJson(const uint8_t *pb) {
+static jsonx::json valueToJson(const uint8_t *begin, const uint8_t *end);
 
+static jsonx::json mapToJson(const uint8_t *begin, const uint8_t *end) {
+    tasn1_iterator_t iter;
+
+    if (tasn1_iterator_set(&iter, begin) != 0)
+        return jsonx::json::undefined;
+
+    jsonx::json obj;
+    while (const TASN1_OCTET_T *pb = tasn1_iterator_get(&iter)) {
+        if (pb > end)
+            break;
+        // Items are serialized as arrays with two values, key and val:
+        jsonx::json item = valueToJson(pb, end);
+        if (item.isArray() && item.size() == 2) {
+            //cerr << "mapToJson: key type: " << item[0].getType() << ", val type: " << item[1].getType() << endl;
+            obj.add(item[0], item[1]);
+        } else {
+            //cerr << "mapToJson: item type: " << item.getType() << ", item size: " << item.size() << endl;
+        }
+    } // end while //
+
+    return obj;
 }
 
-static jsonx::json arrayToJson(const uint8_t *pb) {
+static jsonx::json arrayToJson(const uint8_t *begin, const uint8_t *end) {
+    tasn1_iterator_t iter;
 
+    int erc = tasn1_iterator_set(&iter, begin);
+    if (erc != 0) {
+        //cerr << "arrayToJson: iterator returned error " << string(strerror(erc)) << endl;
+        return jsonx::json::undefined;
+    }
 
+    jsonx::json rg;
+    while (const TASN1_OCTET_T *pb = tasn1_iterator_get(&iter)) {
+        if (pb > end)
+            break;
+        jsonx::json value = valueToJson(pb, end);
+        rg.add(value);
+    } // end while //
+
+    return rg;
 }
 
-static jsonx::json numberToJson(const uint8_t *pb) {
+static jsonx::json numberToJson(const uint8_t *begin, const uint8_t *end) {
+    int sz = tasn1_get_total_size(begin);
+    if ((sz < 0) || (begin + sz > end))
+        return jsonx::json::undefined;
+
     int16_t n;
-    int erc = tasn1_get_number(pb, &n);
+    int erc = tasn1_get_number(begin, &n);
     if (erc)
         return jsonx::json::undefined;
     jsonx::json res = n;
+    //cerr << "numberToJson: number = " << n << ", type = " << res.getType() << endl;
     return res;
 }
 
-static jsonx::json octetSequenceToJson(const uint8_t *pb) {
+static jsonx::json octetSequenceToJson(const uint8_t *begin, const uint8_t *end) {
+    int sz = tasn1_get_total_size(begin);
+    if ((sz < 0) || (begin + sz > end))
+        return jsonx::json::undefined;
+
     const uint8_t *pb_r;
     uint16_t cb_r;
 
-    int erc = tasn1_get_octetsequence(pb, &pb_r, &cb_r);
+    int erc = tasn1_get_octetsequence(begin, &pb_r, &cb_r);
     if (erc)
         return jsonx::json::undefined;
     if ((!pb_r) || (!cb_r))
         return jsonx::json::null;
     if (pb_r[cb_r-1] != '\0') // We only support strings!
         return jsonx::json::undefined;
-    jsonx::json res = (char *)pb_r;
+    jsonx::json res = (const char *)pb_r;
     return res;
 }
 
-static jsonx::json valueToJson(const uint8_t *pb) {
-    switch (tasn1_get_type(pb)) {
+static jsonx::json valueToJson(const uint8_t *begin, const uint8_t *end) {
+    if (begin >= end) // Avoid invalid access vilations
+        return jsonx::json::undefined;
+
+    switch (tasn1_get_type(begin)) {
     case TASN1_MAP :
-        return mapToJson(pb);
+        return mapToJson(begin, end);
     case TASN1_ARRAY :
-        return arrayToJson(pb);
+        return arrayToJson(begin, end);
     case TASN1_NUMBER :
-        return numberToJson(pb);
+        return numberToJson(begin, end);
     case TASN1_OCTET_SEQUENCE :
-        return octetSequenceToJson(pb);
+        return octetSequenceToJson(begin, end);
     default:
         return jsonx::json::undefined;
     } // end switch //
@@ -117,7 +165,7 @@ jsonx::json Node::toJson(const uint8_t *pb, uint16_t cb) {
     if ((sz < 0) || (sz > cb))
         return jsonx::json::undefined;
 
-    return valueToJson(pb);
+    return valueToJson(pb, pb + sz);
 }
 
 Node::~Node() {
