@@ -178,7 +178,7 @@ void Node::serialize(vector_t &buffer) {
     buffer.resize(n);
     int m{::tasn1_serialize(node, buffer.data(), n)};
     if (m < 0)
-        throw std::runtime_error("IO error: " + string(strerror(-n)));
+        throw std::runtime_error("IO error: " + string(strerror(-m)));
     if (m != n)
         throw std::runtime_error("Size inconsistency " + std::to_string(n) + " <-> "
                                                        + std::to_string(m));

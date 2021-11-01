@@ -73,10 +73,12 @@ static int serialize_header(tasn1_type_t type, size_t size, TASN1_OCTET_T *po, s
 
 void tasn1_init_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, TASN1_SIZE_T co)
 {
-    it->node.type = TASN1_OCTET_SEQUENCE;
-#ifdef HAVE_HEAP
-    it->node.on_heap = false;
+#ifdef MEM_SAVE
+    it->choke = OCTET_SEQUENCE_CHOKE;
+    it->node.choke = NODE_CHOKE;
 #endif
+    it->node.type = TASN1_OCTET_SEQUENCE;
+    it->node.on_heap = false;
     INIT_LIST_HEAD(&it->node.list);
     it->s_data = co;
     it->p_data = po;
@@ -84,31 +86,29 @@ void tasn1_init_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, TA
 
 void tasn1_reset_octet_sequence(octet_sequence_t *it, const TASN1_OCTET_T *po, TASN1_SIZE_T co)
 {
-    if (it->node.type != TASN1_OCTET_SEQUENCE)
-        return;
-#ifdef HAVE_HEAP
-    if (it->node.on_heap && it->p_data)
-        free((void *)it->p_data);
-#endif
+    assert(it->node.type == TASN1_OCTET_SEQUENCE);
+    assert(!it->is_copy); // Would result in memory leak!
     it->s_data = co;
     it->p_data = po;
-#ifdef HAVE_HEAP
-    it->node.on_heap = false;
-#endif
 }
 
-#ifdef HAVE_HEAP
-tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co, bool copy) {
+octet_sequence_t *tasn1_new_octet_sequence(
+        tasn1_allocator_t *allocator,
+        const TASN1_OCTET_T *po,
+        TASN1_SIZE_T co,
+        bool copy)
+{
+    assert(allocator);
     if (!po)
         return NULL;
-    octet_sequence_t *res = malloc(sizeof(octet_sequence_t));
+    octet_sequence_t *res = allocator->f_alloc(sizeof(octet_sequence_t));
     if (!res)
         return NULL;
     TASN1_OCTET_T *_po;
     if (copy) {
-        _po = malloc(co);
+        _po = allocator->f_alloc(co);
         if (!_po) {
-            free(res);
+            allocator->f_free(res);
             return NULL;
         }
         memcpy(_po, po, co);
@@ -118,21 +118,21 @@ tasn1_node_t *tasn1_new_octet_sequence(const TASN1_OCTET_T *po, TASN1_SIZE_T co,
     tasn1_init_octet_sequence(res, _po, co);
     res->is_copy = copy;
     res->node.on_heap = true;
-    return (tasn1_node_t *)res;
+    return res;
 }
-#endif
 
-#ifdef HAVE_HEAP
-static void octet_sequence_free(octet_sequence_t *it) {
+void tasn1_del_octet_sequence(tasn1_allocator_t *allocator, octet_sequence_t *it)
+{
+    assert(allocator);
     if (it) {
         if (it->is_copy) {
-            free((TASN1_OCTET_T *)it->p_data);
+            allocator->f_free((TASN1_OCTET_T *)it->p_data);
+            it->is_copy = false;
         }
         if (it->node.on_heap)
-            free(it);
+            allocator->f_free(it);
     }
 }
-#endif
 
 static int serialize_octet_sequence(const octet_sequence_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
@@ -154,90 +154,166 @@ static int serialize_octet_sequence(const octet_sequence_t *it, TASN1_OCTET_T *p
 
 void tasn1_init_map(map_t *it)
 {
-    it->node.type = TASN1_MAP;
-#ifdef HAVE_HEAP
-    it->node.on_heap = false;
+#ifdef MEM_SAVE
+    it->choke = MAP_CHOKE;
+    it->node.choke = NODE_CHOKE;
 #endif
+    it->node.type = TASN1_MAP;
+    it->node.on_heap = false;
     INIT_LIST_HEAD(&it->node.list);
     INIT_LIST_HEAD(&it->children);
 }
 
-#ifdef HAVE_HEAP
-tasn1_node_t *tasn1_new_map() {
-    map_t *res = malloc(sizeof(map_t));
+map_t *tasn1_new_map(tasn1_allocator_t *allocator)
+{
+    assert(allocator);
+    map_t *res = allocator->f_alloc(sizeof(map_t));
     if (!res)
         return NULL;
     tasn1_init_map(res);
     res->node.on_heap = true;
-    return (tasn1_node_t *)res;
+    return res;
 }
-#endif
 
 void tasn1_init_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val)
 {
-    INIT_LIST_HEAD(&it->list);
-    it->p_key = key;
-    it->p_val = val;
-#ifdef HAVE_HEAP
-    it->on_heap = false;
+#ifdef MEM_SAVE
+    it->choke = ITEM_CHOKE;
 #endif
+    INIT_LIST_HEAD(&it->list);
+    assert(list_empty(&key->list));
+    it->p_key = key;
+    assert(list_empty(&val->list));
+    it->p_val = val;
+    it->on_heap = false;
 }
 
-#ifdef HAVE_HEAP
-item_t *tasn1_new_item(tasn1_node_t *key, tasn1_node_t *val) {
-    item_t *res = malloc(sizeof(item_t));
+item_t *tasn1_new_item(tasn1_allocator_t *allocator,
+                       tasn1_node_t *key, tasn1_node_t *val)
+{
+    assert(allocator);
+    item_t *res = allocator->f_alloc(sizeof(item_t));
     if (!res)
         return NULL;
     tasn1_init_item(res, key, val);
     res->on_heap = true;
     return res;
 }
+
+void tasn1_del_map(tasn1_allocator_t *allocator, map_t *it)
+{
+    assert(allocator);
+    if (it) {
+#ifdef MEM_SAVE
+        assert(it->choke == MAP_CHOKE);
 #endif
+        struct list_head *pos;
+        struct list_head *n;
+
+        list_for_each_safe(pos, n, &it->children) {
+            item_t *current_item = list_entry(pos, item_t, list);
+#ifdef MEM_SAVE
+            assert(current_item->choke == ITEM_CHOKE);
+#endif
+            list_del_init(pos);
+            if (current_item->on_heap)
+                tasn1_del_item(allocator, current_item);
+        }
+        if (it->node.on_heap)
+            allocator->f_free(it);
+    }
+}
 
 void tasn1_reset_item(item_t *it, tasn1_node_t *key, tasn1_node_t *val)
 {
     if (!it)
         return;
-    if (key)
+#ifdef MEM_SAVE
+    assert(it->choke == ITEM_CHOKE);
+#endif
+    if (key) {
+        assert(list_empty(&key->list));
+        if (it->p_key)
+            assert(!it->p_key->on_heap); // Would cause memory leak!
         it->p_key = key;
-    if (val)
+    }
+    if (val) {
+        assert(list_empty(&val->list));
+        if (it->p_val)
+            assert(!it->p_val->on_heap); // Would cause memory leak!
         it->p_val = val;
-}
-
-#ifdef HAVE_HEAP
-void tasn1_item_free(item_t *it) {
-    if (it) {
-        tasn1_free(it->p_key);
-        tasn1_free(it->p_val);
-        if (it->on_heap)
-            free(it);
     }
 }
-#endif
 
-static int serialize_array(const array_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co);
+void tasn1_del_item(tasn1_allocator_t *allocator, item_t *it)
+{
+    assert(allocator);
+    if (it) {
+#ifdef MEM_SAVE
+        assert(it->choke == ITEM_CHOKE);
+#endif
+        assert(list_empty(&it->p_key->list));
+        if (it->p_key->on_heap)
+            tasn1_del(allocator, it->p_key);
+        assert(list_empty(&it->p_val->list));
+        if (it->p_val->on_heap)
+            tasn1_del(allocator, it->p_val);
+        if (it->on_heap)
+            allocator->f_free(it);
+    }
+}
 
 static int serialize_item(const item_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     if (!it)
         return -ENOENT;
 
-    array_t item_rg;
-    tasn1_init_array(&item_rg);
-    INIT_LIST_HEAD(&it->p_key->list);
-    tasn1_add_array_value(&item_rg, it->p_key);
-    INIT_LIST_HEAD(&it->p_val->list);
-    tasn1_add_array_value(&item_rg, it->p_val);
-    int n = serialize_array(&item_rg, po, co);
-    if (n < 0) {
-        return -n;
+    // Fake a list with two entries:
+    int size_without_header = 0;
+    {
+        int m = tasn1_serialize(it->p_key, NULL, USHRT_MAX);
+        if (m < 0)
+            return m;
+        if ((int)co < m)
+            return -ENOMEM;
+        size_without_header += m;
     }
-    if (n > co) {
+    {
+        int m = tasn1_serialize(it->p_val, NULL, USHRT_MAX);
+        if (m < 0)
+            return m;
+        if ((int)co < m)
+            return -ENOMEM;
+        size_without_header += m;
+    }
+    if (size_without_header < 0)
+        return size_without_header;
+    int n = serialize_header(TASN1_ARRAY, size_without_header, po, co);
+    if (n < 0)
+        return n;
+    if (po)
+        po += n;
+    if ((int)co < n)
         return -ENOMEM;
+    co -= n;
+    {
+        int m = tasn1_serialize(it->p_key, po, co);
+        if (m < 0)
+            return m;
+        if (po)
+            po += m;
+        if ((int)co < m)
+            return -ENOMEM;
+        co -= m;
+        n += m;
     }
-    //if (po)
-    //    po += n;
-    //co -= n;
-
+    {
+        int m = tasn1_serialize(it->p_val, po, co);
+        if (m < 0)
+            return m;
+        if ((int)co < m)
+            return -ENOMEM;
+        n += m;
+    }
     return n;
 }
 
@@ -298,29 +374,15 @@ static int serialize_map(const map_t *it, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     return n;
 }
 
-#ifdef HAVE_HEAP
-static void map_free(map_t *it) {
-    if (it) {
-        struct list_head *pos;
-        struct list_head *n;
-        item_t *current_item;
-
-        list_for_each_safe(pos, n, &it->children) {
-            current_item = list_entry(pos, item_t, list);
-            tasn1_item_free(current_item);
-        }
-        if (it->node.on_heap)
-            free(it);
-    }
-}
-#endif
-
 int tasn1_map_add_item(map_t *map, item_t *item) {
     if ((!map) || (!item))
         return -ENOENT;
+#ifdef MEM_SAVE
+    assert(map->choke == MAP_CHOKE);
+#endif
     if (!list_empty(&item->list))
         return -EINVAL;
-    list_add_tail(&item->list, &((map_t *)map)->children);
+    list_add_tail(&item->list, &map->children);
     return 0;
 }
 
@@ -328,50 +390,64 @@ void tasn1_map_reset(map_t *it)
 {
     if (!it)
         return;
+#ifdef MEM_SAVE
+    assert(it->choke == MAP_CHOKE);
+#endif
     struct list_head *pos;
     struct list_head *n;
     list_for_each_safe(pos, n, &it->children) {
+        item_t *current_item = list_entry(pos, item_t, list);
+#ifdef MEM_SAVE
+        assert(current_item->choke == ITEM_CHOKE);
+#endif
+        assert(!current_item->on_heap); // This would lead to corruption!
         list_del_init(pos);
     }
 }
 
 void tasn1_init_array(array_t *it)
 {
-    it->node.type = TASN1_ARRAY;
-#ifdef HAVE_HEAP
-    it->node.on_heap = false;
+#ifdef MEM_SAVE
+    it->choke = ARRAY_CHOKE;
+    it->node.choke = NODE_CHOKE;
 #endif
+    it->node.type = TASN1_ARRAY;
+    it->node.on_heap = false;
     INIT_LIST_HEAD(&it->node.list);
     INIT_LIST_HEAD(&it->children);
 }
 
-#ifdef HAVE_HEAP
-tasn1_node_t *tasn1_new_array() {
-    array_t *res = malloc(sizeof(array_t));
+array_t *tasn1_new_array(tasn1_allocator_t *allocator)
+{
+    assert(allocator);
+    array_t *res = allocator->f_alloc(sizeof(array_t));
     if (!res)
         return NULL;
     tasn1_init_array(res);
     res->node.on_heap = true;
-    return (tasn1_node_t *)res;
+    return res;
 }
-#endif
 
-#ifdef HAVE_HEAP
-static void array_free(array_t *it) {
+void tasn1_del_array(tasn1_allocator_t *allocator, array_t *it)
+{
+    assert(allocator);
     if (it) {
         struct list_head *pos;
         struct list_head *n;
-        tasn1_node_t *current_node;
 
         list_for_each_safe(pos, n, &it->children) {
-            current_node = list_entry(pos, tasn1_node_t, list);
-            tasn1_free(current_node);
+            tasn1_node_t *current_node = list_entry(pos, tasn1_node_t, list);
+#ifdef MEM_SAVE
+            assert(current_node->choke == NODE_CHOKE);
+#endif
+            list_del_init(pos);
+            if (current_node->on_heap)
+                tasn1_del(allocator, current_node);
         }
         if (it->node.on_heap)
-            free(it);
+            allocator->f_free(it);
     }
 }
-#endif
 
 static int array_size_without_header(const array_t *it) {
     if (!it)
@@ -442,29 +518,50 @@ void tasn1_array_reset(array_t *it)
 {
     if (!it)
         return;
-    INIT_LIST_HEAD(&it->children);
+#ifdef MEM_SAVE
+    assert(it->choke == ARRAY_CHOKE);
+#endif
+    struct list_head *pos;
+    struct list_head *n;
+    list_for_each_safe(pos, n, &it->children) {
+        tasn1_node_t *current_node = list_entry(pos, tasn1_node_t, list);
+#ifdef MEM_SAVE
+        assert(current_node->choke == NODE_CHOKE);
+#endif
+        assert(!current_node->on_heap); // This would lead to corruption!
+        list_del_init(pos);
+    }
 }
 
 void tasn1_init_number(number_t *it, TASN1_NUMBER_T n)
 {
-    it->node.type = TASN1_NUMBER;
-#ifdef HAVE_HEAP
-    it->node.on_heap = false;
+#ifdef MEM_SAVE
+    it->choke = OCTET_SEQUENCE_CHOKE;
+    it->node.choke = ARRAY_CHOKE;
 #endif
+    it->node.type = TASN1_NUMBER;
+    it->node.on_heap = false;
     INIT_LIST_HEAD(&it->node.list);
     it->val = n;
 }
 
-#ifdef HAVE_HEAP
-tasn1_node_t *tasn1_new_number(TASN1_NUMBER_T n) {
-    number_t *res = malloc(sizeof(number_t));
+number_t *tasn1_new_number(tasn1_allocator_t *allocator, TASN1_NUMBER_T n)
+{
+    assert(allocator);
+    number_t *res = allocator->f_alloc(sizeof(number_t));
     if (!res)
         return NULL;
     tasn1_init_number(res, n);
     res->node.on_heap = true;
-    return (tasn1_node_t *)res;
+    return res;
 }
-#endif
+
+void tasn1_del_number(tasn1_allocator_t *allocator, number_t *it)
+{
+    assert(allocator);
+    if (it->node.on_heap)
+        allocator->f_free(it);
+}
 
 void tasn1_reset_number(number_t *it, TASN1_NUMBER_T n)
 {
@@ -472,13 +569,6 @@ void tasn1_reset_number(number_t *it, TASN1_NUMBER_T n)
         return;
     it->val = n;
 }
-
-#ifdef HAVE_HEAP
-static void number_free(number_t *it) {
-    if (it->node.on_heap)
-        free(it);
-}
-#endif
 
 static int serialize_number(const number_t *number, TASN1_OCTET_T *po, TASN1_SIZE_T co) {
     TASN1_NUMBER_T val = number->val;
@@ -515,13 +605,13 @@ int tasn1_serialize(const tasn1_node_t *node, TASN1_OCTET_T *po, TASN1_SIZE_T co
         return -ENOENT;
     switch (node->type) {
         case TASN1_MAP:
-            return serialize_map((map_t *)node, po, co);
+            return serialize_map(container_of(node, map_t, node), po, co);
         case TASN1_ARRAY:
-            return serialize_array((array_t *)node, po, co);
+            return serialize_array(container_of(node, array_t, node), po, co);
         case TASN1_OCTET_SEQUENCE:
-            return serialize_octet_sequence((octet_sequence_t *)node, po, co);
+            return serialize_octet_sequence(container_of(node, octet_sequence_t, node), po, co);
         case TASN1_NUMBER:
-            return serialize_number((number_t *)node, po, co);
+            return serialize_number(container_of(node ,number_t, node), po, co);
         default:
             return -EINVAL;
     } // end switch //
@@ -531,28 +621,28 @@ int tasn1_size(const tasn1_node_t *node) {
     return tasn1_serialize(node, NULL, USHRT_MAX);
 }
 
-#ifdef HAVE_HEAP
-void tasn1_free(tasn1_node_t *node) {
+void tasn1_del(tasn1_allocator_t *allocator, tasn1_node_t *node)
+{
+    assert(allocator);
     if (node) {
         switch (node->type) {
             case TASN1_MAP:
-                map_free((map_t *)node);
+                tasn1_del_map(allocator, container_of(node, map_t, node));
                 return;
             case TASN1_ARRAY:
-                array_free((array_t *)node);
+                tasn1_del_array(allocator, container_of(node, array_t, node));
                 return;
             case TASN1_OCTET_SEQUENCE:
-                octet_sequence_free((octet_sequence_t *)node);
+                tasn1_del_octet_sequence(allocator, container_of(node, octet_sequence_t, node));
                 return;
             case TASN1_NUMBER:
-                number_free((number_t *)node);
+                tasn1_del_number(allocator, container_of(node, number_t, node));
                 return;
             default:
                 return;
         } // end switch //
     }
 }
-#endif
 
 tasn1_type_t tasn1_get_type(const TASN1_OCTET_T *po)
 {
@@ -659,33 +749,31 @@ int tasn1_iterator_set(tasn1_iterator_t *iter, const TASN1_OCTET_T *po)
     return 0;
 }
 
-#ifdef HAVE_HEAP
-tasn1_iterator_t *tasn1_new_iterator()
+tasn1_iterator_t *tasn1_new_iterator(tasn1_allocator_t *allocator)
 {
-    tasn1_iterator_t *iter = (tasn1_iterator_t *)malloc(sizeof(tasn1_iterator_t));
+    assert(allocator);
+    tasn1_iterator_t *iter = allocator->f_alloc(sizeof(tasn1_iterator_t));
     if (!iter)
         return NULL;
     iterator_init(iter);
     return iter;
 }
-#endif
 
-#ifdef HAVE_HEAP
-tasn1_iterator_t *tasn1_new_iterator_set(const TASN1_OCTET_T *po)
+tasn1_iterator_t *tasn1_new_iterator_set(tasn1_allocator_t *allocator, const TASN1_OCTET_T *po)
 {
+    assert(allocator);
     tasn1_type_t type = tasn1_get_type(po);
     if ((type != TASN1_ARRAY) && (type != TASN1_MAP))
         return NULL;
-    tasn1_iterator_t *iter = (tasn1_iterator_t *)malloc(sizeof(tasn1_iterator_t));
+    tasn1_iterator_t *iter = allocator->f_alloc(sizeof(tasn1_iterator_t));
     if (!iter)
         return NULL;
     if (tasn1_iterator_set(iter, po) != 0) {
-        tasn1_iterator_free(iter);
+        tasn1_del_iterator(allocator, iter);
         return NULL;
     }
     return iter;
 }
-#endif
 
 const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter)
 {
@@ -705,4 +793,37 @@ const TASN1_OCTET_T *tasn1_iterator_get(tasn1_iterator_t *iter)
     iter->p += total_size;
     iter->c -= total_size;
     return result;
+}
+
+static uint8_t *my_buffer_pointer = NULL;
+static size_t my_buffer_size = 0;
+
+static void *my_buffer_alloc(size_t cb)
+{
+    if (cb > my_buffer_size)
+        return NULL;
+    void *res = my_buffer_pointer;
+    my_buffer_pointer += cb;
+    my_buffer_size -= cb;
+    return res;
+}
+
+static void my_buffer_free(void *pb) {
+    // This intentionally does nothing
+}
+
+static tasn1_allocator_t my_buffer_allocator = {
+    .f_alloc = my_buffer_alloc,
+    .f_free  = my_buffer_free
+};
+
+void set_buffer_allocator_buffer(uint8_t *pb, size_t cb)
+{
+    my_buffer_pointer = pb;
+    my_buffer_size = cb;
+}
+
+tasn1_allocator_t *buffer_allocator(void)
+{
+    return &my_buffer_allocator;
 }

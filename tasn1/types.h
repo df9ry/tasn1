@@ -10,9 +10,17 @@ extern "C" {
 #include <stdint.h>
 #include <clist.h>
 
-#define TASN1_OCTET_T  uint8_t
-#define TASN1_NUMBER_T int16_t
-#define TASN1_SIZE_T   uint16_t
+#define TASN1_OCTET_T    uint8_t
+#define TASN1_NUMBER_T   int16_t
+#define TASN1_SIZE_T     uint16_t
+
+#define MEM_SAVE
+#define NODE_CHOKE           0x5533
+#define ITEM_CHOKE           0x3355
+#define NUMBER_CHOKE         0x3350
+#define OCTET_SEQUENCE_CHOKE 0x3351
+#define MAP_CHOKE            0x3352
+#define ARRAY_CHOKE          0x3353
 
 /**
  * @brief Datatype of a asn1_node.
@@ -27,14 +35,24 @@ enum tasn1_type {
 #define tasn1_type_t enum tasn1_type
 
 /**
+ * @brief The allocator interface
+ */
+struct tasn1_allocator {
+    void *(*f_alloc)(size_t);
+    void (*f_free)(void *);
+};
+#define tasn1_allocator_t struct tasn1_allocator
+
+/**
  * @brief Internal node structure that holds a value.
  */
 struct tasn1_node {
+#ifdef MEM_SAVE
+    uint16_t choke;
+#endif
     struct list_head list;
     tasn1_type_t type;
-#ifdef HAVE_HEAP
     bool on_heap;
-#endif
 };
 #define tasn1_node_t struct tasn1_node
 
@@ -42,12 +60,13 @@ struct tasn1_node {
  * @brief The octet_sequence struct
  */
 struct tasn1_octet_sequence {
+#ifdef MEM_SAVE
+    uint16_t choke;
+#endif
     tasn1_node_t         node;
     const TASN1_OCTET_T *p_data;
     TASN1_SIZE_T         s_data;
-#ifdef HAVE_HEAP
     bool                 is_copy;
-#endif
 };
 #define octet_sequence_t struct tasn1_octet_sequence
 
@@ -55,10 +74,11 @@ struct tasn1_octet_sequence {
  * @brief The item struct
  */
 struct tasn1_item {
-    struct list_head list;
-#ifdef HAVE_HEAP
-    bool on_heap;
+#ifdef MEM_SAVE
+    uint16_t choke;
 #endif
+    struct list_head list;
+    bool on_heap;
     tasn1_node_t *p_key;
     tasn1_node_t *p_val;
 };
@@ -68,6 +88,9 @@ struct tasn1_item {
  * @brief The map struct
  */
 struct tasn1_map {
+#ifdef MEM_SAVE
+    uint16_t choke;
+#endif
     tasn1_node_t node;
     struct list_head children;
 };
@@ -77,6 +100,9 @@ struct tasn1_map {
  * @brief The array struct
  */
 struct tasn1_array {
+#ifdef MEM_SAVE
+    uint16_t choke;
+#endif
     tasn1_node_t node;
     struct list_head children;
 };
@@ -86,6 +112,9 @@ struct tasn1_array {
  * @brief The number struct
  */
 struct tasn1_number {
+#ifdef MEM_SAVE
+    uint16_t choke;
+#endif
     tasn1_node_t node;
     TASN1_NUMBER_T val;
 };
